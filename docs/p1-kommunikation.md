@@ -21,8 +21,10 @@ P1 führt keine Schreibzugriffe beim Setup, Polling oder Wiederverbinden ein.
 
 ## API und Transport
 
-Das Manifest legt `pymodbus==3.13.1` fest, entsprechend dem Modbus-Manifest von
-Home Assistant Core 2026.10.0. Lesen verwendet ausschließlich die dokumentierte
+Das Manifest verlangt seit der Hassfest-Korrektur mindestens `pymodbus>=3.13.1`.
+Home Assistant Core 2026.10.0 legt seinerseits `pymodbus==3.13.1` fest;
+diese Version erfüllt unsere Mindestanforderung. Die Integration setzt keinen
+eigenen exakten Pin gegen spätere Core-Abhängigkeitsupdates. Lesen verwendet ausschließlich die dokumentierte
 Keyword-API `address=`, `count=`, `device_id=`. Die fehlerhaften Fallbacks auf
 `slave`/`unit` entfallen. Andere PyModbus-Versionen sind hier nicht zugesichert.
 

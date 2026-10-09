@@ -6,7 +6,7 @@ Eigene Integration für die **Paradigma PELEO 14 mit SystaComfort-Regelung** üb
 
 ## Stand und Voraussetzungen
 
-Version **2.0.0-beta.1**, Domain **`paradigma`**. Zielversion: Home Assistant Core **2026.10.0**, mit `pymodbus==3.13.1`. Frühere Core-Versionen sind nicht freigegeben. HAOS 18.3 ist die vorgesehene Umgebung. Die lokalen Tests verwenden Framework-Stubs und Fake-Modbus-Clients; ein echter HAOS-Laufzeittest steht noch aus.
+Version **2.0.0-beta.1**, Domain **`paradigma`**. Zielversion: Home Assistant Core **2026.10.0**, mit `pymodbus>=3.13.1`. Frühere Core-Versionen sind nicht freigegeben. HAOS 18.3 ist die vorgesehene Umgebung. Die lokalen Tests verwenden Framework-Stubs und Fake-Modbus-Clients; ein echter HAOS-Laufzeittest steht noch aus.
 
 **Standardmäßig arbeitet die Integration ausschließlich lesend.** Die Option „Heizungssteuerung über Home Assistant erlauben“ ist deaktiviert, auch bei bestehenden Einträgen ohne diese Option. Eine zentrale Hub-Sperre verhindert Schreibzugriffe. Details zum ersten Test und zur Freigabe: [Nur-Lesen-Modus](docs/lesebetrieb.md).
 
