@@ -1,13 +1,36 @@
 """Sensors for Paradigma."""
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.const import UnitOfTemperature, UnitOfEnergy, UnitOfPower, UnitOfTime
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import DeviceInfo
 from datetime import timedelta
 import logging
-from .const import DOMAIN, CONF_SOLAR, CONF_HK2, CONF_POOL, CONF_ROOM, CONF_BOILER, CONF_WOOD
+from .configuration import scan_interval
+from .const import DOMAIN, CONF_SOLAR, CONF_HK2, CONF_POOL, CONF_ROOM, CONF_BOILER
 
 _LOGGER = logging.getLogger(__name__)
+
+# Preserve the previous 16-bit sentinel policy; do not apply it to uint32.
+INVALID_UINT16 = frozenset({0x7FFF, 0x8000, 0xFFFF})
+
+
+def is_valid_uint(value, bits):
+    """Validate a raw unsigned register value without coercing malformed data."""
+    return type(value) is int and 0 <= value < (1 << bits)
+
+
+def decode_uint32(registers):
+    """Decode high word first, pending confirmation from real PELEO values.
+
+    Individual words may equal 16-bit sentinels in a valid uint32 counter.
+    Only the complete 0xFFFFFFFF value is the known invalid uint32 sentinel.
+    """
+    if not isinstance(registers, (list, tuple)) or len(registers) != 2:
+        return None
+    if not all(is_valid_uint(word, 16) for word in registers):
+        return None
+    value = (registers[0] << 16) | registers[1]
+    return None if value == 0xFFFFFFFF else value
 
 
 
@@ -49,8 +72,6 @@ STATUS_SOLAR = {
     7: "manual", 8: "measuring", 9: "emergency" 
 }
 
-STATUS_WOOD = { 0: "no_boiler", 1: "off", 2: "ignition", 3: "burning", 4: "burnout", 5: "cooling", 6: "shutdown", 7: "pump_push" }
-STATUS_PELLET = { 0: "off", 1: "standby", 2: "ignition", 3: "burning", 4: "test", 5: "runon", 6: "cleaning", 7: "error", 8: "unknown" }
 
 SENSOR_DEFINITIONS = [
 
@@ -71,14 +92,9 @@ SENSOR_DEFINITIONS = [
 
     ("boiler_flow", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 12, CONF_BOILER),
     ("boiler_return", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 13, CONF_BOILER),
-    ("boiler_hours", UnitOfTime.HOURS, SensorDeviceClass.DURATION, 1.0, "holding_32", 27, CONF_BOILER),
-    ("boiler_starts", None, None, 1.0, "holding_32", 29, CONF_BOILER),
+    ("boiler_hours", UnitOfTime.HOURS, SensorDeviceClass.DURATION, 1, "holding_32", 27, None),
+    ("boiler_starts", None, None, 1, "holding_32", 29, None),
 
-    ("wood_flow", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 14, CONF_WOOD),
-    ("wood_return", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 15, CONF_WOOD),
-    ("wood_buffer_top", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 16, CONF_WOOD),
-    ("pellet_hours", UnitOfTime.HOURS, SensorDeviceClass.DURATION, 1.0, "holding_32", 27, CONF_WOOD),
-    ("pellet_starts", None, None, 1.0, "holding_32", 29, CONF_WOOD),
     
 
     ("collector_temp", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 11, CONF_SOLAR),
@@ -96,15 +112,16 @@ SENSOR_DEFINITIONS = [
     ("status_hk2", None, None, 1, "holding_status_hk", 37, CONF_HK2),
     ("status_solar", None, None, 1, "holding_status_solar", 39, CONF_SOLAR),
     ("status_pool", None, None, 1, "holding_status_pool", 40, CONF_POOL),
-    ("status_boiler", None, None, 1, "holding_status_boiler", 41, CONF_BOILER),
-    ("status_pellet", None, None, 1, "holding_status_pellet", 42, CONF_WOOD),
-    ("status_wood", None, None, 1, "holding_status_wood", 43, CONF_WOOD),
+    ("status_boiler", None, None, 1, "holding_status_boiler", 41, None),
 ]
 
 async def async_setup_entry(hass, entry, async_add_entities):
     hub = hass.data[DOMAIN][entry.entry_id]
-    coordinator = ParadigmaDataCoordinator(hass, hub, entry.data)
-    await coordinator.async_config_entry_first_refresh()
+    coordinator = hub.coordinator
+    if coordinator is None:
+        coordinator = ParadigmaDataCoordinator(hass, hub, entry.data, entry)
+        await coordinator.async_config_entry_first_refresh()
+        hub.coordinator = coordinator
     
     entities = []
     for s in SENSOR_DEFINITIONS:
@@ -115,54 +132,44 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities)
 
 class ParadigmaDataCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, hub, config):
-        super().__init__(hass, _LOGGER, name="ParadigmaSensors", update_interval=timedelta(seconds=30))
+    def __init__(self, hass, hub, config, entry=None):
+        super().__init__(
+            hass, _LOGGER, name="ParadigmaSensors", config_entry=entry,
+            update_interval=timedelta(seconds=scan_interval(config)),
+            always_update=False,
+        )
         self.hub = hub
         self.config = config
+        # Derive the plan from the entity definitions; no address/type duplication.
+        self._read_plan = {}
+        for definition in SENSOR_DEFINITIONS:
+            _, _, _, _, register_type, address, required = definition
+            if required and not config.get(required):
+                continue
+            kind = "input" if register_type == "input" else (
+                "holding_32" if register_type == "holding_32" else "holding"
+            )
+            self._read_plan[(kind, address)] = 2 if kind == "holding_32" else 1
 
     async def _async_update_data(self):
+        # All synchronous reads run outside the event loop, in one executor job.
+        return await self.hass.async_add_executor_job(self._read_data)
+
+    def _read_data(self):
         data = {}
-        
-   
-        offsets_input = [0, 1, 2, 3, 4, 5, 6]
-        if self.config.get(CONF_HK2): offsets_input.extend([7, 8])
-        if self.config.get(CONF_ROOM): offsets_input.extend([9, 10])
-        if self.config.get(CONF_SOLAR): offsets_input.append(11)
-        if self.config.get(CONF_BOILER): offsets_input.extend([12, 13])
-        if self.config.get(CONF_WOOD): offsets_input.extend([14, 15, 16])
-        if self.config.get(CONF_POOL): offsets_input.extend([19, 20, 21])
-
-        for off in offsets_input:
-            val = await self.hass.async_add_executor_job(self.hub.read_input_registers, off, 1)
-            if val: data[f"input_{off}"] = val[0]
-
-
-        offsets_holding_16 = [34, 35, 36]
-        if self.config.get(CONF_HK2): offsets_holding_16.append(37)
-        if self.config.get(CONF_SOLAR): offsets_holding_16.extend([19, 20, 39])
-        if self.config.get(CONF_BOILER): offsets_holding_16.append(41)
-        if self.config.get(CONF_WOOD): offsets_holding_16.extend([42, 43])
-        if self.config.get(CONF_POOL): offsets_holding_16.append(40)
-
-        for off in offsets_holding_16:
-            val = await self.hass.async_add_executor_job(self.hub.read_holding_registers, off, 1)
-            if val: data[f"holding_{off}"] = val[0]
-            
-
-        offsets_holding_32 = []
-        if self.config.get(CONF_SOLAR): offsets_holding_32.append(21)
-        if self.config.get(CONF_BOILER): offsets_holding_32.extend([27, 29])
-        if self.config.get(CONF_WOOD): offsets_holding_32.extend([27, 29])
-
-        for off in offsets_holding_32:
-            try:
-                val_32 = await self.hass.async_add_executor_job(self.hub.read_holding_registers, off, 2)
-                if val_32 and len(val_32) == 2:
-                    combined = (val_32[0] << 16) | val_32[1]
-                    data[f"holding_32_{off}"] = combined
-            except Exception as e:
-                _LOGGER.error(f"Fehler beim Lesen des 32-Bit Registers {off}: {e}")
-            
+        responses = 0
+        for (kind, address), count in self._read_plan.items():
+            reader = self.hub.read_input_registers if kind == "input" else self.hub.read_holding_registers
+            values = reader(address, count)
+            if not isinstance(values, (list, tuple)) or len(values) != count:
+                continue
+            if not all(is_valid_uint(value, 16) for value in values):
+                continue
+            # A sentinel is invalid measurement data, but a valid transport response.
+            responses += 1
+            data[f"{kind}_{address}"] = decode_uint32(values) if count == 2 else values[0]
+        if not responses:
+            raise UpdateFailed("No valid Modbus responses from the configured sensor registers")
         return data
 
 class ParadigmaSensor(CoordinatorEntity, SensorEntity):
@@ -192,6 +199,15 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
 
     @property
+    def available(self):
+        if not self.coordinator.last_update_success or self.coordinator.data is None:
+            return False
+        kind = "input" if self._type == "input" else (
+            "holding_32" if self._type == "holding_32" else "holding"
+        )
+        return f"{kind}_{self._reg_idx}" in self.coordinator.data
+
+    @property
     def native_value(self):
         if "input" in self._type:
             key = f"input_{self._reg_idx}"
@@ -200,9 +216,13 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         else:
             key = f"holding_{self._reg_idx}"
             
-        raw = self.coordinator.data.get(key)
+        raw = (self.coordinator.data or {}).get(key)
         
-        if raw is None or raw in [0x7FFF, 0x8000, 0xFFFF, 0xFFFFFFFF]: return None
+        if self._type == "holding_32":
+            if not is_valid_uint(raw, 32) or raw == 0xFFFFFFFF:
+                return None
+        elif not is_valid_uint(raw, 16) or raw in INVALID_UINT16:
+            return None
 
 
         if "status_hk" in self._type: return STATUS_HK.get(raw, str(raw))
@@ -210,8 +230,6 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         if "status_circ" in self._type: return STATUS_CIRC.get(raw, str(raw))
         if "status_solar" in self._type: return STATUS_SOLAR.get(raw, str(raw))
         if "status_boiler" in self._type: return STATUS_BOILER.get(raw, str(raw))
-        if "status_wood" in self._type: return STATUS_WOOD.get(raw, str(raw))
-        if "status_pellet" in self._type: return STATUS_PELLET.get(raw, str(raw))
         if "status_pool" in self._type: return STATUS_POOL.get(raw, str(raw))
 
         if self._unit == UnitOfTemperature.CELSIUS:

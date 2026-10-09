@@ -1,143 +1,52 @@
-# Paradigma Heating Integration for Home Assistant
+# Paradigma PELEO 14 für Home Assistant
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
-[![version](https://img.shields.io/github/v/release/nussfuellung/paradigma-homeassistant?include_prereleases)](https://github.com/nussfuellung/paradigma-homeassistant/releases)
-[![Downloads](https://img.shields.io/github/downloads/nussfuellung/paradigma-homeassistant/total.svg?style=flat)](https://github.com/nussfuellung/paradigma-homeassistant/releases)
-[![Stars](https://img.shields.io/github/stars/nussfuellung/paradigma-homeassistant.svg?style=flat)](https://github.com/nussfuellung/paradigma-homeassistant/stargazers)
-[![Issues](https://img.shields.io/github/issues/nussfuellung/paradigma-homeassistant.svg?style=flat)](https://github.com/nussfuellung/paradigma-homeassistant/issues)
-[![Last Commit](https://img.shields.io/github/last-commit/nussfuellung/paradigma-homeassistant.svg?style=flat)](https://github.com/nussfuellung/paradigma-homeassistant/commits/main)
+Eigene Integration für die **Paradigma PELEO 14 mit SystaComfort-Regelung** über lokales Modbus TCP. Maintainer: [mattes1007](https://github.com/mattes1007). Installation als benutzerdefiniertes HACS-Repository; dieser Fork ist kein Eintrag im HACS-Standardkatalog.
 
-![Paradigma Integration Logo](logo.png)
+![Paradigma Logo](logo.png)
 
-> [!TIP]
-> **Now available in the HACS Default Store! Just search for "Paradigma" in HACS. No need to add a custom repository anymore.**
+## Stand und Voraussetzungen
 
-This is a custom integration for **Paradigma** heating systems (SystaSmartC II / SystaComfort II) for Home Assistant. It communicates locally via **Modbus TCP**.
+Version **2.0.0-beta.1**, Domain **`paradigma`**. Zielversion: Home Assistant Core **2026.10.0**, mit `pymodbus>=3.13.1`. Frühere Core-Versionen sind nicht freigegeben. HAOS 18.3 ist die vorgesehene Umgebung. Die lokalen Tests verwenden Framework-Stubs und Fake-Modbus-Clients; ein echter HAOS-Laufzeittest steht noch aus.
 
-A major update adding support for **heat pumps** is planned for the first half of this year. You will receive an update notification via HACS as soon as this feature becomes available.
+**Standardmäßig arbeitet die Integration ausschließlich lesend.** Die Option „Heizungssteuerung über Home Assistant erlauben“ ist deaktiviert, auch bei bestehenden Einträgen ohne diese Option. Eine zentrale Hub-Sperre verhindert Schreibzugriffe. Details zum ersten Test und zur Freigabe: [Nur-Lesen-Modus](docs/lesebetrieb.md).
 
-> [!IMPORTANT]
-> **If you previously added your heating system manually via YAML, make sure to remove all old Modbus files/entries from your `configuration.yaml`. Otherwise, the system may block the Modbus communication.**
+## Sensoren und Kommunikation
 
-[🇩🇪 Zur deutschen Beschreibung springen](#german)
+Die drei PELEO-Kesselsensoren sind unabhängig von optionalen Komponenten immer vorhanden:
 
----
+| Sensor | Holding-Register | Format |
+| --- | --- | --- |
+| Betriebsstunden | 27–28 | uint32, High Word zuerst |
+| Kesselstarts | 29–30 | uint32, High Word zuerst |
+| Kesselstatus | 41 | uint16, bestehende Statustabelle |
 
-## 🇬🇧 English Description
+Ungültige Zählerwerte `4294967295` werden verworfen. Wortreihenfolge und Kesselstatus-Tabelle müssen noch anhand echter Registerwerte oder Herstellerunterlagen bestätigt werden. Es gibt keinen separaten Wodtke-Pelletsofen oder Holzkessel in diesem Profil.
 
-### Compatible Devices
-This integration is designed for Paradigma controllers that support the "Modbus-Schnittstelle für das Smarthome-System" protocol (Protocol Version 1.1).
+Weitere Sensoren betreffen Heizkreis 1, Warmwasser, Puffer und Zirkulation. Solar, Heizkreis 2, Pool, Raumfühler sowie Kesseltemperaturfühler sind optional; ihre bisherigen Zuordnungen sind noch nicht unabhängig für diese Anlage bestätigt. Die Option für Kesseltemperaturfühler beeinflusst die drei Kesselsensoren nicht.
 
-* **SystaSmartC II**
-* **SystaComfort II**
-* **Extensions:** SystaComfort Wood, SystaComfort Pool, SystaExpresso (Fresh water station).
+Das konfigurierte Sensor-Abfrageintervall beträgt 10–3600 Sekunden, standardmäßig 30 Sekunden. Alte gespeicherte Werte unter zehn Sekunden werden zur Laufzeit mit Warnung auf 30 Sekunden zurückgesetzt, ohne den gespeicherten Eintrag zu verändern. Bei vollständigem Ausfall werden Sensoren `unavailable`; erfolgreiche spätere Abfragen stellen die Daten automatisch wieder her. Details: [Register und Identitäten](docs/peleo14-register.md), [Kommunikation und Lebenszyklus](docs/p1-kommunikation.md).
 
-### Features
+Bei bewusst aktivierter Steuerfreigabe werden nur die belegten Heizkreis-Sollwerte und der Warmwasser-Sollwert angeboten. Sie prüfen Wertebereiche, Schreibantworten und Rücklesewerte. Puffer-/Kessel-Sollwertregler sowie Warmwasser-/Zirkulationsschalter bleiben gesperrt. Die geprüfte Herstellerunterlage bezeichnet Holding 44/45 als nur lesbar; Coil-Overrides benötigen eine gesonderte Freigabe ihrer Befehlssequenz. [P3-Schreibprüfung und Grenzen](docs/p3-steuerung.md).
 
-The integration connects to the heating controller (Unit ID 1) and provides a fully modular setup. You can enable or disable specific components during configuration.
+## Installation und Aktualisierung
 
-#### 🌡️ Sensors (Read-Only)
-* **Standard:** Outdoor Temp, Flow/Return (HK1), DHW Temp, Buffer (Top/Bottom), Circulation Return.
-* **Status:** Clear-text status messages (fully translated) for Heating Circuits, DHW, Circulation, and Boiler.
-* **Optional Components (Selectable):**
-    * **Solar:** Collector Temp, Current Power, Daily Yield, Total Yield.
-    * **Heating Circuit 2 (HK2):** Flow/Return, Room Temp, Status.
-    * **Boiler (Gas/Oil):** Flow/Return, Operation Hours, Starts, Status.
-    * **Wood/Pellet:** Flow/Return, Buffer Top, Pellet Consumption, Operation Hours, Detailed Status messages (e.g., "Burnout", "Ignition").
-    * **Pool:** Temp, Flow/Return, Status.
-    * **Room Sensors:** Room temperatures for HK1 and HK2.
+[HACS-Anleitung mit Backup, Wechsel von der Originalintegration und Rollback](docs/hacs-installation.md).
 
-#### 🎛️ Controls (Read/Write)
-* **Heating Circuits:** Set target **Flow Temperature** (Vorlauf) via Number entities for HK1 and HK2.
-* **Domestic Hot Water:** Set target water temperature and toggle On/Off via a **Water Heater** entity.
-* **Buffer/Boiler:** Set target temperatures for Buffer Top and Boiler.
+Repository: **`https://github.com/mattes1007/paradigma-peleo14-homeassistant`**, HACS-Kategorie **Integration**. Die Dateien liegen unter `custom_components/paradigma/`. HACS lädt direkt aus dem Repository; ein ZIP-Release ist nicht erforderlich. Diese lokalen Änderungen werden erst nach gesondert freigegebener Veröffentlichung über GitHub verfügbar.
 
-#### 🔘 Switches
-* **DHW Enable:** Enable/Disable hot water preparation globally.
-* **Circulation Enable:** Enable/Disable circulation pump globally.
+Bei einer neuen Einrichtung unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** nach **Paradigma PELEO 14** suchen. Verbindungsdaten für die vorgesehene Anlage: Host `192.168.1.42`, Port `502`, Slave-ID `1`. **Die Einrichtung prüft die Verbindung**, deshalb vor dem ersten Test die Hinweise zum Nur-Lesen-Modus prüfen. Die Steuerfreigabe dabei deaktiviert lassen. Nur tatsächlich installierte Zusatzkomponenten auswählen. Der bestehende Name und Integrationseintrag sollen bei einem Upgrade erhalten bleiben, damit die Entity-Identitäten erhalten bleiben.
 
-### Installation via HACS
+## Entwicklung
 
-1.  Open **HACS** in Home Assistant.
-2.  Go to **Integrations** and click on **Explore & Download Repositories** (or use the search bar).
-3.  Search for **Paradigma**.
-4.  Click **Download** / **Install**.
-5.  Restart Home Assistant.
+Alle lokalen Tests ohne zusätzliche Pakete und ohne echte Netzwerkzugriffe:
 
-### Configuration
+```sh
+python3 -B -m unittest discover -s tests -v
+git diff --check
+```
 
-1.  Go to **Settings** > **Devices & Services**.
-2.  Click **Add Integration** and search for **Paradigma**.
-3.  Enter the connection details:
-    * **Host:** IP address of your SystaSmartC/Comfort.
-    * **Port:** Default is `502`.
-    * **Unit ID:** Default is `1`.
-4.  **Select your installed components:**
-    * Check the boxes for **Solar**, **Heating Circuit 2**, **Pool**, **Room Sensors**, **Boiler**, or **Wood/Pellet** to enable the respective sensors.
+GitHub-Workflows prüfen zusätzlich HACS und Hassfest sowie die Offline-Tests unter Python 3.12 und 3.14. Die externen Validatoren sind nicht Teil des lokalen Testlaufs. [Verpackung und Versionsstrategie](docs/hacs-installation.md#verpackung-und-version).
 
-> **Note:** You can change these settings at any time by clicking **"Configure"** on the integration entry.
+## Herkunft
 
----
-
-<a name="german"></a>
-## 🇩🇪 Deutsche Beschreibung
-
-### Kompatible Geräte
-Diese Integration unterstützt Paradigma Regelungen, die das Protokoll "Modbus-Schnittstelle für das Smarthome-System" (Protokoll V1.1) unterstützen.
-
-* **SystaSmartC II**
-* **SystaComfort II**
-* **Erweiterungen:** SystaComfort Wood, SystaComfort Pool, SystaExpresso.
-
-### Funktionen
-
-Die Integration verbindet sich mit dem Heizungsregler (Unit ID 1) und bietet einen modularen Aufbau. Komponenten können bei der Einrichtung an- oder abgewählt werden.
-
-#### 🌡️ Sensoren (Nur Lesen)
-* **Standard:** Außentemperatur, Vorlauf/Rücklauf (HK1), Warmwasser, Puffer (Oben/Unten), Zirkulation Rücklauf.
-* **Status:** Klartext-Statusmeldungen (mehrsprachig) für Heizkreise, Warmwasser, Zirkulation und Kessel (z. B. "Heizbetrieb", "Vorhaltezeit", "Ladung läuft").
-* **Optionale Komponenten (Wählbar):**
-    * **Solar:** Kollektor-Temp, Leistung, Tagesertrag, Gesamtertrag.
-    * **Heizkreis 2 (HK2):** Vorlauf/Rücklauf, Raumtemperatur, Status.
-    * **Kessel (Gas/Öl):** Vorlauf/Rücklauf, Betriebsstunden, Starts, Status.
-    * **Holz/Pellets:** Vorlauf/Rücklauf, Puffer Oben, Pelletverbrauch, Betriebsstunden, Detaillierter Status (z.B. "Ausbrand", "Anheizen").
-    * **Pool:** Temp, Vorlauf/Rücklauf, Status.
-    * **Raumfühler:** Raumtemperaturen für HK1 und HK2 (falls Fernbedienung vorhanden).
-
-#### 🎛️ Steuerung (Lesen/Schreiben)
-* **Heizkreise:** Einstellen der **Soll-Vorlauftemperatur** über Zahlen-Entitäten (Number) für HK1 und HK2.
-* **Warmwasser:** Einstellen der Warmwasser-Solltemperatur und An/Aus über eine **Wassererwärmer** (Water Heater) Entität.
-* **Puffer/Kessel:** Einstellen der Solltemperaturen für Puffer Oben und den Kessel.
-
-#### 🔘 Schalter
-* **Warmwasser Freigabe:** Ein-/Ausschalten der Warmwasserbereitung (DHW Enable).
-* **Zirkulation Freigabe:** Ein-/Ausschalten der Zirkulationspumpe (Circ Enable).
-
-### Installation über HACS
-
-1.  Öffnen Sie **HACS** in Home Assistant.
-2.  Gehen Sie zu **Integrationen** und klicken Sie auf **Durchsuchen & Herunterladen** (oder nutzen Sie die Suchfunktion).
-3.  Suchen Sie nach **Paradigma**.
-4.  Klicken Sie auf **Herunterladen**.
-5.  Starten Sie Home Assistant neu.
-
-### Konfiguration
-
-1.  Gehen Sie zu **Einstellungen** > **Geräte & Dienste**.
-2.  Klicken Sie auf **Integration hinzufügen** und suchen Sie nach **Paradigma**.
-3.  Geben Sie die Verbindungsdaten ein:
-    * **IP-Adresse:** Die IP Ihrer SystaSmartC/Comfort im Netzwerk.
-    * **Port:** Standard ist `502`.
-    * **Unit ID:** Standard ist `1`.
-4.  **Wählen Sie Ihre installierten Komponenten:**
-    * Setzen Sie Haken bei **Solar**, **Heizkreis 2**, **Pool**, **Raumfühler**, **Kessel** oder **Holz/Pellet**, um die entsprechenden Sensoren zu aktivieren.
-
-> **Hinweis:** Sie können diese Einstellungen jederzeit nachträglich ändern, indem Sie bei der Integration auf **"Konfigurieren"** klicken.
-
----
-
-### Disclaimer / Haftungsausschluss
-
-This is a private open-source project and **not** an official product of Ritter Energie- und Umwelttechnik GmbH & Co. KG or Paradigma. Use at your own risk.
-
-Dies ist ein privates Open-Source-Projekt und **kein** offizielles Produkt der Ritter Energie- und Umwelttechnik GmbH & Co. KG oder Paradigma. Benutzung auf eigene Gefahr.
+Fork von [nussfuellung/paradigma-homeassistant](https://github.com/nussfuellung/paradigma-homeassistant). Lizenz: [GPL-3.0](LICENSE). Dies ist ein privates Projekt und kein offizielles Produkt von Paradigma.

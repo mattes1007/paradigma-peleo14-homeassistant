@@ -1,6 +1,6 @@
 {
-  "name": "Paradigma",
-  "render_readme": true,
-  "zip_release": true,
-  "filename": "paradigma.zip"
+  "name": "Paradigma PELEO 14",
+  "content_in_root": false,
+  "homeassistant": "2026.10.0",
+  "zip_release": false
 }
