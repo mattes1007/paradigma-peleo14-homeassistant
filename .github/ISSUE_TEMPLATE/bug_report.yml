@@ -3,7 +3,7 @@ description: Create a report to help us improve. / Erstelle einen Fehlerbericht.
 title: "[Bug]: "
 labels: ["bug"]
 assignees:
-  - nussfuellung
+  - mattes1007
 body:
   - type: markdown
     attributes:
@@ -16,7 +16,7 @@ body:
     attributes:
       label: Home Assistant Core Version
       description: Which version are you running? / Welche Version nutzt du?
-      placeholder: 2024.x.x
+      placeholder: 2026.10.0
     validations:
       required: true
   - type: input
@@ -24,7 +24,7 @@ body:
     attributes:
       label: Integration Version
       description: Which version of the Paradigma integration are you using? / Welche Version der Integration nutzt du?
-      placeholder: v1.0.1
+      placeholder: 2.0.0-beta.1
     validations:
       required: true
   - type: textarea

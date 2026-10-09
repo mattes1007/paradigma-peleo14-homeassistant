@@ -3,7 +3,7 @@ description: Suggest an idea for this integration. / Schlage eine neue Funktion 
 title: "[Feature]: "
 labels: ["enhancement"]
 assignees:
-  - nussfuellung
+  - mattes1007
 body:
   - type: textarea
     id: feature_desc
