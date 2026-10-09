@@ -10,11 +10,10 @@
 ![Paradigma Integration Logo](logo.png)
 
 > [!TIP]
-> **Now available in the HACS Default Store! Just search for "Paradigma" in HACS. No need to add a custom repository anymore.**
+> **For this fork, add its GitHub repository as a custom integration repository in HACS. The upstream default-store entry refers to the original project.**
 
-This is a custom integration for **Paradigma** heating systems (SystaSmartC II / SystaComfort II) for Home Assistant. It communicates locally via **Modbus TCP**.
+This fork targets the **Paradigma PELEO 14 with SystaComfort** and communicates locally via **Modbus TCP**. The fixed boiler sensor profile and identity compatibility are documented in [PELEO 14 registers](docs/peleo14-register.md).
 
-A major update adding support for **heat pumps** is planned for the first half of this year. You will receive an update notification via HACS as soon as this feature becomes available.
 
 > [!IMPORTANT]
 > **If you previously added your heating system manually via YAML, make sure to remove all old Modbus files/entries from your `configuration.yaml`. Otherwise, the system may block the Modbus communication.**
@@ -28,9 +27,8 @@ A major update adding support for **heat pumps** is planned for the first half o
 ### Compatible Devices
 This integration is designed for Paradigma controllers that support the "Modbus-Schnittstelle für das Smarthome-System" protocol (Protocol Version 1.1).
 
-* **SystaSmartC II**
-* **SystaComfort II**
-* **Extensions:** SystaComfort Wood, SystaComfort Pool, SystaExpresso (Fresh water station).
+* **PELEO 14 with SystaComfort**
+* Optional solar, second heating circuit, pool and room sensors retain their previous register mappings; these have not been independently verified for this system.
 
 ### Features
 
@@ -42,8 +40,7 @@ The integration connects to the heating controller (Unit ID 1) and provides a fu
 * **Optional Components (Selectable):**
     * **Solar:** Collector Temp, Current Power, Daily Yield, Total Yield.
     * **Heating Circuit 2 (HK2):** Flow/Return, Room Temp, Status.
-    * **Boiler (Gas/Oil):** Flow/Return, Operation Hours, Starts, Status.
-    * **Wood/Pellet:** Flow/Return, Buffer Top, Pellet Consumption, Operation Hours, Detailed Status messages (e.g., "Burnout", "Ignition").
+    * **PELEO 14:** Operating hours, starts and boiler status are always enabled. Boiler flow/return temperature sensors are optional.
     * **Pool:** Temp, Flow/Return, Status.
     * **Room Sensors:** Room temperatures for HK1 and HK2.
 
@@ -60,7 +57,7 @@ The integration connects to the heating controller (Unit ID 1) and provides a fu
 
 1.  Open **HACS** in Home Assistant.
 2.  Go to **Integrations** and click on **Explore & Download Repositories** (or use the search bar).
-3.  Search for **Paradigma**.
+3.  Add this fork as a **custom repository**, category **Integration**, and select it.
 4.  Click **Download** / **Install**.
 5.  Restart Home Assistant.
 
@@ -73,7 +70,7 @@ The integration connects to the heating controller (Unit ID 1) and provides a fu
     * **Port:** Default is `502`.
     * **Unit ID:** Default is `1`.
 4.  **Select your installed components:**
-    * Check the boxes for **Solar**, **Heating Circuit 2**, **Pool**, **Room Sensors**, **Boiler**, or **Wood/Pellet** to enable the respective sensors.
+    * Check the boxes for **Solar**, **Heating Circuit 2**, **Pool**, **Room Sensors**, **Boiler temperature sensors** to enable the respective sensors.
 
 > **Note:** You can change these settings at any time by clicking **"Configure"** on the integration entry.
 
@@ -83,11 +80,15 @@ The integration connects to the heating controller (Unit ID 1) and provides a fu
 ## 🇩🇪 Deutsche Beschreibung
 
 ### Kompatible Geräte
+
+Dieser Fork verwendet ein festes **PELEO-14-Profil mit SystaComfort**.
+Register, Wortreihenfolge und Hinweise zu bestehenden Entity-IDs stehen in der
+[PELEO-14-Registerdokumentation](docs/peleo14-register.md).
+
 Diese Integration unterstützt Paradigma Regelungen, die das Protokoll "Modbus-Schnittstelle für das Smarthome-System" (Protokoll V1.1) unterstützen.
 
-* **SystaSmartC II**
-* **SystaComfort II**
-* **Erweiterungen:** SystaComfort Wood, SystaComfort Pool, SystaExpresso.
+* **PELEO 14 mit SystaComfort**
+* Optionale Solar-, Heizkreis-2-, Pool- und Raumfühlersensoren behalten ihre bisherigen Registerzuordnungen; diese sind für diese Anlage noch nicht unabhängig bestätigt.
 
 ### Funktionen
 
@@ -99,8 +100,7 @@ Die Integration verbindet sich mit dem Heizungsregler (Unit ID 1) und bietet ein
 * **Optionale Komponenten (Wählbar):**
     * **Solar:** Kollektor-Temp, Leistung, Tagesertrag, Gesamtertrag.
     * **Heizkreis 2 (HK2):** Vorlauf/Rücklauf, Raumtemperatur, Status.
-    * **Kessel (Gas/Öl):** Vorlauf/Rücklauf, Betriebsstunden, Starts, Status.
-    * **Holz/Pellets:** Vorlauf/Rücklauf, Puffer Oben, Pelletverbrauch, Betriebsstunden, Detaillierter Status (z.B. "Ausbrand", "Anheizen").
+    * **PELEO 14:** Betriebsstunden, Kesselstarts und Kesselstatus sind immer aktiv. Kessel-Vorlauf/Rücklauf sind optional.
     * **Pool:** Temp, Vorlauf/Rücklauf, Status.
     * **Raumfühler:** Raumtemperaturen für HK1 und HK2 (falls Fernbedienung vorhanden).
 
@@ -117,7 +117,7 @@ Die Integration verbindet sich mit dem Heizungsregler (Unit ID 1) und bietet ein
 
 1.  Öffnen Sie **HACS** in Home Assistant.
 2.  Gehen Sie zu **Integrationen** und klicken Sie auf **Durchsuchen & Herunterladen** (oder nutzen Sie die Suchfunktion).
-3.  Suchen Sie nach **Paradigma**.
+3.  Fügen Sie diesen Fork als **benutzerdefiniertes Repository**, Kategorie **Integration**, hinzu und wählen Sie ihn aus.
 4.  Klicken Sie auf **Herunterladen**.
 5.  Starten Sie Home Assistant neu.
 
@@ -130,7 +130,7 @@ Die Integration verbindet sich mit dem Heizungsregler (Unit ID 1) und bietet ein
     * **Port:** Standard ist `502`.
     * **Unit ID:** Standard ist `1`.
 4.  **Wählen Sie Ihre installierten Komponenten:**
-    * Setzen Sie Haken bei **Solar**, **Heizkreis 2**, **Pool**, **Raumfühler**, **Kessel** oder **Holz/Pellet**, um die entsprechenden Sensoren zu aktivieren.
+    * Setzen Sie Haken bei **Solar**, **Heizkreis 2**, **Pool**, **Raumfühler**, **Kesseltemperaturfühler**, um die entsprechenden Sensoren zu aktivieren.
 
 > **Hinweis:** Sie können diese Einstellungen jederzeit nachträglich ändern, indem Sie bei der Integration auf **"Konfigurieren"** klicken.
 

@@ -4,6 +4,7 @@
       "user": {
         "title": "Paradigma Heizung verbinden",
         "data": {
+          "name": "Name",
           "host": "IP-Adresse",
           "port": "Port",
           "slave_id": "Slave ID / Unit ID",
@@ -11,8 +12,7 @@
           "hk2_installed": "Heizkreis 2 vorhanden",
           "pool_installed": "Schwimmbad vorhanden",
           "room_sensor_installed": "Raumfühler vorhanden",
-          "boiler_installed": "Kessel (Gas/Öl) vorhanden",
-          "wood_installed": "Holz/Pellet Kessel vorhanden",
+          "boiler_installed": "Kesseltemperaturfühler vorhanden (PELEO 14)",
           "scan_interval": "Abfrageintervall (Sekunden)"
         }
       }
@@ -33,8 +33,7 @@
           "hk2_installed": "Heizkreis 2 vorhanden",
           "pool_installed": "Schwimmbad vorhanden",
           "room_sensor_installed": "Raumfühler vorhanden",
-          "boiler_installed": "Kessel (Gas/Öl) vorhanden",
-          "wood_installed": "Holz/Pellet Kessel vorhanden",
+          "boiler_installed": "Kesseltemperaturfühler vorhanden (PELEO 14)",
           "scan_interval": "Abfrageintervall (Sekunden)"
         }
       }
@@ -66,13 +65,8 @@
       "room_temp_hk2": { "name": "Raumtemperatur HK2" },
       "boiler_flow": { "name": "Kessel Vorlauf" },
       "boiler_return": { "name": "Kessel Rücklauf" },
-      "boiler_hours": { "name": "Kessel Betriebsstunden" },
-      "boiler_starts": { "name": "Kessel Starts" },
-      "wood_flow": { "name": "Holz Vorlauf" },
-      "wood_return": { "name": "Holz Rücklauf" },
-      "wood_buffer_top": { "name": "Holz Puffer Oben" },
-      "pellet_hours": { "name": "Pellet Betriebsstunden" },
-      "pellet_starts": { "name": "Pelletkessel Starts"},
+      "boiler_hours": { "name": "PELEO 14 Betriebsstunden" },
+      "boiler_starts": { "name": "PELEO 14 Kesselstarts" },
       "flow_hk2": { "name": "Vorlauf HK2" },
       "return_hk2": { "name": "Rücklauf HK2" },
       "collector_temp": { "name": "Kollektortemperatur" },
@@ -119,21 +113,9 @@
         }
       },
       "status_boiler": {
-        "name": "Status Kessel",
+        "name": "PELEO 14 Kesselstatus",
         "state": {
           "off": "Aus", "on": "An", "on_heating": "An für Heizkreis", "loading_buffer": "Lädt Puffer", "blocked": "Gesperrt", "cooling_hp": "Kühlung WP", "ww_prep": "WW Bereitung"
-        }
-      },
-      "status_wood": {
-        "name": "Status Holzkessel",
-        "state": {
-          "no_boiler": "Kein Kessel", "off": "Aus", "ignition": "Anheizen", "burning": "Leistungsbrand", "burnout": "Ausbrand", "cooling": "Nachkühlen", "shutdown": "Schaltet ab", "pump_push": "Pumpe schiebt an"
-        }
-      },
-      "status_pellet": {
-        "name": "Status Pelletsofen",
-        "state": {
-          "off": "Aus", "standby": "Standby", "ignition": "Anheizen", "burning": "Leistungsbrand", "test": "Test Abgasklappe", "runon": "Nachlauf", "cleaning": "Reinigung", "error": "Störung", "unknown": "Unbekannt"
         }
       }
     }

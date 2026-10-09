@@ -4,6 +4,7 @@
       "user": {
         "title": "Connect Paradigma Heating",
         "data": {
+          "name": "Name",
           "host": "IP Address",
           "port": "Port",
           "slave_id": "Slave ID / Unit ID",
@@ -11,8 +12,7 @@
           "hk2_installed": "Heating Circuit 2 Installed",
           "pool_installed": "Pool System Installed",
           "room_sensor_installed": "Room Sensors Installed",
-          "boiler_installed": "Boiler (Gas/Oil) Installed",
-          "wood_installed": "Wood/Pellet Boiler Installed",
+          "boiler_installed": "Boiler temperature sensors installed (PELEO 14)",
           "scan_interval": "Update Interval (Seconds)"
         }
       }
@@ -33,8 +33,7 @@
           "hk2_installed": "Heating Circuit 2 Installed",
           "pool_installed": "Pool System Installed",
           "room_sensor_installed": "Room Sensors Installed",
-          "boiler_installed": "Boiler (Gas/Oil) Installed",
-          "wood_installed": "Wood/Pellet Boiler Installed",
+          "boiler_installed": "Boiler temperature sensors installed (PELEO 14)",
           "scan_interval": "Update Interval (Seconds)"
         }
       }
@@ -66,13 +65,8 @@
       "room_temp_hk2": { "name": "Room Temp HK2" },
       "boiler_flow": { "name": "Boiler Flow" },
       "boiler_return": { "name": "Boiler Return" },
-      "boiler_hours": { "name": "Boiler Hours" },
-      "boiler_starts": { "name": "Boiler Starts" },
-      "wood_flow": { "name": "Wood Flow" },
-      "wood_return": { "name": "Wood Return" },
-      "wood_buffer_top": { "name": "Wood Buffer Top" },
-      "pellet_hours": { "name": "Pellet Hours" },
-      "pellet_starts": { "name": "Pellet Starts"},
+      "boiler_hours": { "name": "PELEO 14 operating hours" },
+      "boiler_starts": { "name": "PELEO 14 boiler starts" },
       "flow_hk2": { "name": "Flow HK2" },
       "return_hk2": { "name": "Return HK2" },
       "collector_temp": { "name": "Collector Temperature" },
@@ -119,21 +113,9 @@
         }
       },
       "status_boiler": {
-        "name": "Status Boiler",
+        "name": "PELEO 14 boiler status",
         "state": {
           "off": "Off", "on": "On", "on_heating": "On for Heating Circuit", "loading_buffer": "Loading Buffer", "blocked": "Blocked", "cooling_hp": "Cooling Heat Pump", "ww_prep": "DHW Preparation"
-        }
-      },
-      "status_wood": {
-        "name": "Status Wood Boiler",
-        "state": {
-          "no_boiler": "No Boiler", "off": "Off", "ignition": "Ignition", "burning": "Burning", "burnout": "Burnout", "cooling": "Cooling", "shutdown": "Shutdown", "pump_push": "Pump Pushing"
-        }
-      },
-      "status_pellet": {
-        "name": "Status Pellet Stove",
-        "state": {
-          "off": "Off", "standby": "Standby", "ignition": "Ignition", "burning": "Burning", "test": "Test", "runon": "Run-on", "cleaning": "Cleaning", "error": "Error", "unknown": "Unknown"
         }
       }
     }
