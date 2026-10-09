@@ -18,10 +18,20 @@
       }
     },
     "error": {
-      "cannot_connect": "Connection failed"
+      "cannot_connect": "Connection failed",
+      "invalid_host": "Enter a hostname or IP address without whitespace.",
+      "invalid_port": "Port must be an integer between 1 and 65535.",
+      "invalid_slave_id": "Device ID must be an integer between 1 and 255.",
+      "invalid_scan_interval": "Scan interval must be an integer between 5 and 3600 seconds."
     }
   },
   "options": {
+    "error": {
+      "invalid_host": "Enter a hostname or IP address without whitespace.",
+      "invalid_port": "Port must be an integer between 1 and 65535.",
+      "invalid_slave_id": "Device ID must be an integer between 1 and 255.",
+      "invalid_scan_interval": "Scan interval must be an integer between 5 and 3600 seconds."
+    },
     "step": {
       "init": {
         "title": "Paradigma Options",

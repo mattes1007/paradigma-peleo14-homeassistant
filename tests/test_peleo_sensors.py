@@ -19,7 +19,7 @@ def load_sensor_module():
     for name in ('homeassistant', 'homeassistant.components',
                  'homeassistant.components.sensor', 'homeassistant.const',
                  'homeassistant.helpers', 'homeassistant.helpers.update_coordinator',
-                 'homeassistant.helpers.entity', 'peleo_test'):
+                 'homeassistant.helpers.entity', 'homeassistant.exceptions', 'peleo_test'):
         modules[name] = ModuleType(name)
     modules['peleo_test'].__path__ = [str(ROOT / 'custom_components/paradigma')]
     const = modules['homeassistant.const']
@@ -31,6 +31,9 @@ def load_sensor_module():
         'Platform': dict(SENSOR='sensor', NUMBER='number', SWITCH='switch', WATER_HEATER='water_heater'),
     }.items():
         setattr(const, name, SimpleNamespace(**values))
+    const.CONF_HOST = 'host'
+    const.CONF_PORT = 'port'
+    const.CONF_SCAN_INTERVAL = 'scan_interval'
     sensor = modules['homeassistant.components.sensor']
     sensor.SensorEntity = type('SensorEntity', (), {})
     sensor.SensorDeviceClass = SimpleNamespace(TEMPERATURE='temperature', DURATION='duration', ENERGY='energy', POWER='power', ENUM='enum')
@@ -43,11 +46,40 @@ def load_sensor_module():
     class DataUpdateCoordinator:
         def __init__(self, hass, logger, **kwargs):
             self.hass = hass
+            self.update_interval = kwargs['update_interval']
+            self.config_entry = kwargs.get('config_entry')
+            self.data = None
+            self.last_update_success = True
+            self.shutdown = False
 
         async def async_config_entry_first_refresh(self):
-            self.data = await self._async_update_data()
+            if self.config_entry is None:
+                raise RuntimeError('First refresh requires a config entry')
+            try:
+                self.data = await self._async_update_data()
+            except UpdateFailed as err:
+                self.last_update_success = False
+                raise ConfigEntryNotReady(str(err)) from err
 
+        async def async_refresh(self):
+            try:
+                self.data = await self._async_update_data()
+                self.last_update_success = True
+            except UpdateFailed:
+                self.last_update_success = False
+
+        async def async_shutdown(self):
+            self.shutdown = True
+
+    class UpdateFailed(Exception):
+        pass
+
+    class ConfigEntryNotReady(Exception):
+        pass
+
+    modules['homeassistant.exceptions'].ConfigEntryNotReady = ConfigEntryNotReady
     coordinator = modules['homeassistant.helpers.update_coordinator']
+    coordinator.UpdateFailed = UpdateFailed
     coordinator.CoordinatorEntity = CoordinatorEntity
     coordinator.DataUpdateCoordinator = DataUpdateCoordinator
     modules['homeassistant.helpers.entity'].DeviceInfo = dict
@@ -64,6 +96,7 @@ SENSOR = load_sensor_module()
 class FakeHub:
     def __init__(self, counters=None):
         self.calls = []
+        self.coordinator = None
         self.counters = {27: [0, 4294], 29: [0, 123]} if counters is None else counters
 
     def read_input_registers(self, address, count):
@@ -217,7 +250,7 @@ class PeleoTests(unittest.TestCase):
         coordinator = SENSOR.ParadigmaDataCoordinator(FakeHass(hub), hub, {})
         data = asyncio.run(coordinator._async_update_data())
         self.assertIsNone(data['holding_32_27'])
-        self.assertIsNone(data['holding_32_29'])
+        self.assertNotIn('holding_32_29', data)
 
 
 if __name__ == '__main__':

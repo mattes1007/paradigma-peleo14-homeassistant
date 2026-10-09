@@ -54,6 +54,11 @@ def load_flow_classes():
         if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
             for target in node.targets:
                 namespace[target.id] = node.value.value
+    config_source = ast.parse((ROOT / 'custom_components/paradigma/configuration.py').read_text())
+    import logging
+    namespace['_LOGGER'] = logging.getLogger('test_configuration')
+    config_nodes = [node for node in config_source.body if isinstance(node, (ast.FunctionDef, ast.Assign)) and not (isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == '_LOGGER' for t in node.targets))]
+    exec(compile(ast.Module(body=config_nodes, type_ignores=[]), 'configuration.py', 'exec'), namespace)
     classes = ast.Module(body=[node for node in source.body if isinstance(node, ast.ClassDef)], type_ignores=[])
     exec(compile(classes, 'config_flow.py', 'exec'), namespace)
     return namespace

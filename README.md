@@ -12,7 +12,7 @@
 > [!TIP]
 > **For this fork, add its GitHub repository as a custom integration repository in HACS. The upstream default-store entry refers to the original project.**
 
-This fork targets the **Paradigma PELEO 14 with SystaComfort** and communicates locally via **Modbus TCP**. The fixed boiler sensor profile and identity compatibility are documented in [PELEO 14 registers](docs/peleo14-register.md).
+This fork targets the **Paradigma PELEO 14 with SystaComfort** and communicates locally via **Modbus TCP**. The fixed boiler sensor profile and identity compatibility are documented in [PELEO 14 registers](docs/peleo14-register.md). Polling, recovery and platform limitations are documented in [P1 communication](docs/p1-kommunikation.md).
 
 
 > [!IMPORTANT]
@@ -84,6 +84,8 @@ The integration connects to the heating controller (Unit ID 1) and provides a fu
 Dieser Fork verwendet ein festes **PELEO-14-Profil mit SystaComfort**.
 Register, Wortreihenfolge und Hinweise zu bestehenden Entity-IDs stehen in der
 [PELEO-14-Registerdokumentation](docs/peleo14-register.md).
+Abfrageintervall, Wiederverbindung und Plattformgrenzen stehen in der
+[P1-Kommunikationsdokumentation](docs/p1-kommunikation.md).
 
 Diese Integration unterstützt Paradigma Regelungen, die das Protokoll "Modbus-Schnittstelle für das Smarthome-System" (Protokoll V1.1) unterstützen.
 

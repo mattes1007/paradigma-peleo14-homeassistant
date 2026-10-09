@@ -10,6 +10,7 @@ from .const import (
     CONF_SOLAR, CONF_HK2, CONF_POOL, CONF_ROOM, CONF_BOILER, DEFAULT_NAME
 )
 from .hub import ParadigmaHub
+from .configuration import validate_config
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,10 +26,14 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
+            errors = validate_config(user_input)
+        if user_input is not None and not errors:
             # Verbindungstest vor dem Erstellen
             hub = ParadigmaHub(self.hass, user_input[CONF_NAME], user_input[CONF_HOST], user_input[CONF_PORT], user_input[CONF_SLAVE_ID])
-            connected = await self.hass.async_add_executor_job(hub.connect)
-            hub.close()
+            try:
+                connected = await self.hass.async_add_executor_job(hub.connect)
+            finally:
+                await self.hass.async_add_executor_job(hub.close)
 
             if connected:
                 return self.async_create_entry(title=user_input[CONF_NAME], data=user_input)
@@ -60,15 +65,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):
         """Manage the options."""
+        errors = {}
         if user_input is not None:
-            
             new_data = self.config_entry.data.copy()
             new_data.update(user_input)
 
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
-            return self.async_create_entry(title="", data=new_data)
+            errors = validate_config(new_data)
+            if not errors:
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=new_data
+                )
+                return self.async_create_entry(title="", data=new_data)
 
         
         data = self.config_entry.data
@@ -86,4 +93,5 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(CONF_POOL, default=data.get(CONF_POOL, False)): bool,
                 vol.Optional(CONF_SCAN_INTERVAL, default=data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)): int,
             }),
+            errors=errors,
         )

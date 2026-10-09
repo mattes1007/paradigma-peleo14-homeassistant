@@ -1,10 +1,11 @@
 """Sensors for Paradigma."""
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
 from homeassistant.const import UnitOfTemperature, UnitOfEnergy, UnitOfPower, UnitOfTime
-from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import DeviceInfo
 from datetime import timedelta
 import logging
+from .configuration import scan_interval
 from .const import DOMAIN, CONF_SOLAR, CONF_HK2, CONF_POOL, CONF_ROOM, CONF_BOILER
 
 _LOGGER = logging.getLogger(__name__)
@@ -116,8 +117,11 @@ SENSOR_DEFINITIONS = [
 
 async def async_setup_entry(hass, entry, async_add_entities):
     hub = hass.data[DOMAIN][entry.entry_id]
-    coordinator = ParadigmaDataCoordinator(hass, hub, entry.data)
-    await coordinator.async_config_entry_first_refresh()
+    coordinator = hub.coordinator
+    if coordinator is None:
+        coordinator = ParadigmaDataCoordinator(hass, hub, entry.data, entry)
+        await coordinator.async_config_entry_first_refresh()
+        hub.coordinator = coordinator
     
     entities = []
     for s in SENSOR_DEFINITIONS:
@@ -128,49 +132,44 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities(entities)
 
 class ParadigmaDataCoordinator(DataUpdateCoordinator):
-    def __init__(self, hass, hub, config):
-        super().__init__(hass, _LOGGER, name="ParadigmaSensors", update_interval=timedelta(seconds=30))
+    def __init__(self, hass, hub, config, entry=None):
+        super().__init__(
+            hass, _LOGGER, name="ParadigmaSensors", config_entry=entry,
+            update_interval=timedelta(seconds=scan_interval(config)),
+            always_update=False,
+        )
         self.hub = hub
         self.config = config
+        # Derive the plan from the entity definitions; no address/type duplication.
+        self._read_plan = {}
+        for definition in SENSOR_DEFINITIONS:
+            _, _, _, _, register_type, address, required = definition
+            if required and not config.get(required):
+                continue
+            kind = "input" if register_type == "input" else (
+                "holding_32" if register_type == "holding_32" else "holding"
+            )
+            self._read_plan[(kind, address)] = 2 if kind == "holding_32" else 1
 
     async def _async_update_data(self):
+        # All synchronous reads run outside the event loop, in one executor job.
+        return await self.hass.async_add_executor_job(self._read_data)
+
+    def _read_data(self):
         data = {}
-        
-   
-        offsets_input = [0, 1, 2, 3, 4, 5, 6]
-        if self.config.get(CONF_HK2): offsets_input.extend([7, 8])
-        if self.config.get(CONF_ROOM): offsets_input.extend([9, 10])
-        if self.config.get(CONF_SOLAR): offsets_input.append(11)
-        if self.config.get(CONF_BOILER): offsets_input.extend([12, 13])
-        if self.config.get(CONF_POOL): offsets_input.extend([19, 20, 21])
-
-        for off in offsets_input:
-            val = await self.hass.async_add_executor_job(self.hub.read_input_registers, off, 1)
-            if val: data[f"input_{off}"] = val[0]
-
-
-        offsets_holding_16 = [34, 35, 36]
-        if self.config.get(CONF_HK2): offsets_holding_16.append(37)
-        if self.config.get(CONF_SOLAR): offsets_holding_16.extend([19, 20, 39])
-        offsets_holding_16.append(41)
-        if self.config.get(CONF_POOL): offsets_holding_16.append(40)
-
-        for off in offsets_holding_16:
-            val = await self.hass.async_add_executor_job(self.hub.read_holding_registers, off, 1)
-            if val: data[f"holding_{off}"] = val[0]
-            
-
-        offsets_holding_32 = []
-        if self.config.get(CONF_SOLAR): offsets_holding_32.append(21)
-        offsets_holding_32.extend([27, 29])
-
-        for off in offsets_holding_32:
-            try:
-                val_32 = await self.hass.async_add_executor_job(self.hub.read_holding_registers, off, 2)
-                data[f"holding_32_{off}"] = decode_uint32(val_32)
-            except Exception as e:
-                _LOGGER.error(f"Fehler beim Lesen des 32-Bit Registers {off}: {e}")
-            
+        responses = 0
+        for (kind, address), count in self._read_plan.items():
+            reader = self.hub.read_input_registers if kind == "input" else self.hub.read_holding_registers
+            values = reader(address, count)
+            if not isinstance(values, (list, tuple)) or len(values) != count:
+                continue
+            if not all(is_valid_uint(value, 16) for value in values):
+                continue
+            # A sentinel is invalid measurement data, but a valid transport response.
+            responses += 1
+            data[f"{kind}_{address}"] = decode_uint32(values) if count == 2 else values[0]
+        if not responses:
+            raise UpdateFailed("No valid Modbus responses from the configured sensor registers")
         return data
 
 class ParadigmaSensor(CoordinatorEntity, SensorEntity):
@@ -200,6 +199,15 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
 
     @property
+    def available(self):
+        if not self.coordinator.last_update_success or self.coordinator.data is None:
+            return False
+        kind = "input" if self._type == "input" else (
+            "holding_32" if self._type == "holding_32" else "holding"
+        )
+        return f"{kind}_{self._reg_idx}" in self.coordinator.data
+
+    @property
     def native_value(self):
         if "input" in self._type:
             key = f"input_{self._reg_idx}"
@@ -208,7 +216,7 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         else:
             key = f"holding_{self._reg_idx}"
             
-        raw = self.coordinator.data.get(key)
+        raw = (self.coordinator.data or {}).get(key)
         
         if self._type == "holding_32":
             if not is_valid_uint(raw, 32) or raw == 0xFFFFFFFF:

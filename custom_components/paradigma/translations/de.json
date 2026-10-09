@@ -18,10 +18,20 @@
       }
     },
     "error": {
-      "cannot_connect": "Verbindung fehlgeschlagen"
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "invalid_host": "Bitte einen Hostnamen oder eine IP-Adresse ohne Leerzeichen eingeben.",
+      "invalid_port": "Der Port muss eine ganze Zahl zwischen 1 und 65535 sein.",
+      "invalid_slave_id": "Die Slave-ID muss eine ganze Zahl zwischen 1 und 255 sein.",
+      "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 5 und 3600 Sekunden sein."
     }
   },
   "options": {
+    "error": {
+      "invalid_host": "Bitte einen Hostnamen oder eine IP-Adresse ohne Leerzeichen eingeben.",
+      "invalid_port": "Der Port muss eine ganze Zahl zwischen 1 und 65535 sein.",
+      "invalid_slave_id": "Die Slave-ID muss eine ganze Zahl zwischen 1 und 255 sein.",
+      "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 5 und 3600 Sekunden sein."
+    },
     "step": {
       "init": {
         "title": "Paradigma Optionen",
