@@ -8,7 +8,7 @@ Eigene Integration für die **Paradigma PELEO 14 mit SystaComfort-Regelung** üb
 
 Version **2.0.0-beta.1**, Domain **`paradigma`**. Zielversion: Home Assistant Core **2026.10.0**, mit `pymodbus==3.13.1`. Frühere Core-Versionen sind nicht freigegeben. HAOS 18.3 ist die vorgesehene Umgebung. Die lokalen Tests verwenden Framework-Stubs und Fake-Modbus-Clients; ein echter HAOS-Laufzeittest steht noch aus.
 
-**Die Integration enthält aktive Steuerplattformen und hat derzeit keinen Read-only-Schalter. Vor einem Test mit erreichbarer Heizung die [Empfehlung zum sicheren Lesebetrieb](docs/lesebetrieb.md) beachten.** P2 bereitet Installation und Verpackung vor, aktiviert aber keine Schreibsperre.
+**Standardmäßig arbeitet die Integration ausschließlich lesend.** Die Option „Heizungssteuerung über Home Assistant erlauben“ ist deaktiviert, auch bei bestehenden Einträgen ohne diese Option. Eine zentrale Hub-Sperre verhindert Schreibzugriffe. Details zum ersten Test und zur Freigabe: [Nur-Lesen-Modus](docs/lesebetrieb.md).
 
 ## Sensoren und Kommunikation
 
@@ -24,17 +24,17 @@ Ungültige Zählerwerte `4294967295` werden verworfen. Wortreihenfolge und Kesse
 
 Weitere Sensoren betreffen Heizkreis 1, Warmwasser, Puffer und Zirkulation. Solar, Heizkreis 2, Pool, Raumfühler sowie Kesseltemperaturfühler sind optional; ihre bisherigen Zuordnungen sind noch nicht unabhängig für diese Anlage bestätigt. Die Option für Kesseltemperaturfühler beeinflusst die drei Kesselsensoren nicht.
 
-Das konfigurierte Sensor-Abfrageintervall beträgt 5–3600 Sekunden, standardmäßig 30 Sekunden. Bei vollständigem Ausfall werden Sensoren `unavailable`; erfolgreiche spätere Abfragen stellen die Daten automatisch wieder her. Details: [Register und Identitäten](docs/peleo14-register.md), [Kommunikation und Lebenszyklus](docs/p1-kommunikation.md).
+Das konfigurierte Sensor-Abfrageintervall beträgt 10–3600 Sekunden, standardmäßig 30 Sekunden. Alte gespeicherte Werte unter zehn Sekunden werden zur Laufzeit mit Warnung auf 30 Sekunden zurückgesetzt, ohne den gespeicherten Eintrag zu verändern. Bei vollständigem Ausfall werden Sensoren `unavailable`; erfolgreiche spätere Abfragen stellen die Daten automatisch wieder her. Details: [Register und Identitäten](docs/peleo14-register.md), [Kommunikation und Lebenszyklus](docs/p1-kommunikation.md).
 
-Die unveränderten Plattformen Number, Switch und Water Heater können Solltemperaturen, Warmwasser und Zirkulation steuern. Sie verwenden weiterhin eigene Abfragen und haben noch nicht die Ausfallbehandlung der Sensoren. Ihre Schreibsemantik wurde nicht für die PELEO 14 bestätigt.
+Bei bewusst aktivierter Steuerfreigabe werden nur die belegten Heizkreis-Sollwerte und der Warmwasser-Sollwert angeboten. Sie prüfen Wertebereiche, Schreibantworten und Rücklesewerte. Puffer-/Kessel-Sollwertregler sowie Warmwasser-/Zirkulationsschalter bleiben gesperrt. Die geprüfte Herstellerunterlage bezeichnet Holding 44/45 als nur lesbar; Coil-Overrides benötigen eine gesonderte Freigabe ihrer Befehlssequenz. [P3-Schreibprüfung und Grenzen](docs/p3-steuerung.md).
 
 ## Installation und Aktualisierung
 
 [HACS-Anleitung mit Backup, Wechsel von der Originalintegration und Rollback](docs/hacs-installation.md).
 
-Repository: **`https://github.com/mattes1007/paradigma-peleo14-homeassistant`**, HACS-Kategorie **Integration**. Die Dateien liegen unter `custom_components/paradigma/`. HACS lädt direkt aus dem Repository; ein ZIP-Release ist nicht erforderlich. Diese lokalen P2-Änderungen werden erst nach gesondert freigegebener Veröffentlichung über GitHub verfügbar.
+Repository: **`https://github.com/mattes1007/paradigma-peleo14-homeassistant`**, HACS-Kategorie **Integration**. Die Dateien liegen unter `custom_components/paradigma/`. HACS lädt direkt aus dem Repository; ein ZIP-Release ist nicht erforderlich. Diese lokalen Änderungen werden erst nach gesondert freigegebener Veröffentlichung über GitHub verfügbar.
 
-Bei einer neuen Einrichtung unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** nach **Paradigma PELEO 14** suchen. Verbindungsdaten für die vorgesehene Anlage: Host `192.168.1.42`, Port `502`, Slave-ID `1`. **Die Einrichtung prüft die Verbindung**, deshalb erst mit abgesichertem Netzwerk durchführen. Nur tatsächlich installierte Zusatzkomponenten auswählen. Der bestehende Name und Integrationseintrag sollen bei einem Upgrade erhalten bleiben, damit die Entity-Identitäten erhalten bleiben.
+Bei einer neuen Einrichtung unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** nach **Paradigma PELEO 14** suchen. Verbindungsdaten für die vorgesehene Anlage: Host `192.168.1.42`, Port `502`, Slave-ID `1`. **Die Einrichtung prüft die Verbindung**, deshalb vor dem ersten Test die Hinweise zum Nur-Lesen-Modus prüfen. Die Steuerfreigabe dabei deaktiviert lassen. Nur tatsächlich installierte Zusatzkomponenten auswählen. Der bestehende Name und Integrationseintrag sollen bei einem Upgrade erhalten bleiben, damit die Entity-Identitäten erhalten bleiben.
 
 ## Entwicklung
 

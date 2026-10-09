@@ -14,7 +14,7 @@ class ValidationTests(unittest.TestCase):
         return data
 
     def test_integer_boundaries(self):
-        for key, bounds in (('port', (1, 65535)), ('slave_id', (1, 255)), ('scan_interval', (5, 3600))):
+        for key, bounds in (('port', (1, 65535)), ('slave_id', (1, 255)), ('scan_interval', (10, 3600))):
             for value in bounds:
                 self.assertEqual(FLOW['validate_config'](self.config(**{key: value})), {})
             for value in (bounds[0] - 1, bounds[1] + 1, True, False, str(bounds[0]), float(bounds[0]), None):
@@ -35,7 +35,7 @@ class ValidationTests(unittest.TestCase):
         self.assertEqual(set(result['errors']), {'port', 'slave_id', 'scan_interval'})
 
     def test_invalid_options_do_not_mutate_existing_entry(self):
-        entry = SimpleNamespace(data=self.config(wood_installed=True))
+        entry = SimpleNamespace(entry_id='existing-entry', options={}, data=self.config(wood_installed=True))
         original = entry.data.copy()
         flow = FLOW['OptionsFlowHandler'](entry)
         flow.config_entry = entry
@@ -66,7 +66,7 @@ class ValidationTests(unittest.TestCase):
 
     def test_old_missing_and_invalid_intervals(self):
         self.assertEqual(FLOW['scan_interval']({}), 30)
-        for value in (0, -1, 3601, '30', True):
+        for value in (0, -1, 1, 5, 6, 7, 8, 9, 3601, '30', True):
             data = self.config(scan_interval=value)
             with self.assertLogs(FLOW['_LOGGER'], level='WARNING'):
                 self.assertEqual(FLOW['scan_interval'](data), 30)

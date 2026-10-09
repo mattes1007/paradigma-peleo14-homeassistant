@@ -2,12 +2,12 @@
 import logging
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_NAME
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import device_registry as dr
 
-from .configuration import validate_config
+from .configuration import validate_config, control_allowed
 from .const import DOMAIN, CONF_SLAVE_ID, PLATFORMS
 from .hub import ParadigmaHub
 from .sensor import ParadigmaDataCoordinator
@@ -17,13 +17,16 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Connect and read before any platform can use the shared client."""
-    errors = validate_config(entry.data, check_interval=False)
+    errors = validate_config(entry.data, check_interval=False, check_permission=False)
     if errors:
         raise ConfigEntryError(f"Invalid Paradigma configuration: {errors}")
     if entry.entry_id in hass.data.get(DOMAIN, {}):
         raise ConfigEntryError("Previous Paradigma runtime still exists; unload it before retrying setup")
     hub = ParadigmaHub(hass, entry.data[CONF_NAME], entry.data[CONF_HOST],
-                      entry.data[CONF_PORT], entry.data[CONF_SLAVE_ID])
+                      entry.data[CONF_PORT], entry.data[CONF_SLAVE_ID],
+                      allow_control=control_allowed(entry.data),
+                      permission_check=lambda: control_allowed(entry.data))
+    hub.platforms = list(PLATFORMS) if hub.control_enabled else [Platform.SENSOR]
     coordinator = ParadigmaDataCoordinator(hass, hub, entry.data, entry)
     hub.coordinator = coordinator
     try:
@@ -47,11 +50,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             sw_version="Modbus V1.1",
             configuration_url=f"http://{entry.data[CONF_HOST]}",
         )
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        await hass.config_entries.async_forward_entry_setups(entry, hub.platforms)
     except BaseException:
+        hub.revoke_control()
         # Preserve the client if a partially loaded platform cannot be unloaded.
         try:
-            unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+            unloaded = await hass.config_entries.async_unload_platforms(entry, hub.platforms)
         except Exception:
             _LOGGER.exception("Could not clean up platforms for entry %s", entry.entry_id)
             unloaded = False
@@ -70,7 +74,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload all platforms before closing their shared connection."""
     hub = hass.data[DOMAIN][entry.entry_id]
-    if not await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+    hub.revoke_control()
+    if not await hass.config_entries.async_unload_platforms(entry, hub.platforms):
         return False
     await hub.coordinator.async_shutdown()
     await hass.async_add_executor_job(hub.close)
@@ -79,4 +84,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
+    hub = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if hub is not None:
+        hub.revoke_control()
     await hass.config_entries.async_reload(entry.entry_id)

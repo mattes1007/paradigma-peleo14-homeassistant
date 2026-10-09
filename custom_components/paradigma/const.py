@@ -14,6 +14,7 @@ CONF_HK2 = "hk2_installed"
 CONF_POOL = "pool_installed"
 CONF_ROOM = "room_sensor_installed"
 CONF_BOILER = "boiler_installed"
+CONF_ALLOW_CONTROL = "allow_control"
 
 
 PLATFORMS = [Platform.SENSOR, Platform.NUMBER, Platform.SWITCH, Platform.WATER_HEATER]

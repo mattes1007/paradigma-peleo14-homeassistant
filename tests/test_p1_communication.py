@@ -73,8 +73,10 @@ def load_hub():
     modules = {name: ModuleType(name) for name in ('pymodbus', 'pymodbus.client', 'pymodbus.exceptions')}
     modules['pymodbus.client'].ModbusTcpClient = Client
     modules['pymodbus.exceptions'].ModbusException = ModbusException
+    modules['p1_hub_package'] = ModuleType('p1_hub_package')
+    modules['p1_hub_package'].__path__ = [str(ROOT / 'custom_components/paradigma')]
     with patch.dict(sys.modules, modules):
-        spec = importlib.util.spec_from_file_location('p1_hub', ROOT / 'custom_components/paradigma/hub.py')
+        spec = importlib.util.spec_from_file_location('p1_hub_package.hub', ROOT / 'custom_components/paradigma/hub.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     return module

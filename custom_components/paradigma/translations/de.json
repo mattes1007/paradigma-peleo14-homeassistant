@@ -13,7 +13,11 @@
           "pool_installed": "Schwimmbad vorhanden",
           "room_sensor_installed": "Raumfühler vorhanden",
           "boiler_installed": "Kesseltemperaturfühler vorhanden (PELEO 14)",
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "allow_control": "Heizungssteuerung über Home Assistant erlauben"
+        },
+        "data_description": {
+          "allow_control": "Standardmäßig nur lesen. Die Freigabe gilt nur für geprüfte Sollwerte. Puffer-/Kessel-Sollwerte und Coil-Schalter bleiben gesperrt. Voraussetzung: SystaComfort II ab V2.16, passende Herstellerunterlage und sichere Einstellungen am Regler. Änderungen werden nicht automatisch wiederholt."
         }
       }
     },
@@ -22,7 +26,8 @@
       "invalid_host": "Bitte einen Hostnamen oder eine IP-Adresse ohne Leerzeichen eingeben.",
       "invalid_port": "Der Port muss eine ganze Zahl zwischen 1 und 65535 sein.",
       "invalid_slave_id": "Die Slave-ID muss eine ganze Zahl zwischen 1 und 255 sein.",
-      "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 5 und 3600 Sekunden sein."
+      "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 10 und 3600 Sekunden sein.",
+      "invalid_allow_control": "Die Steuerfreigabe muss ein boolescher Wert sein."
     }
   },
   "options": {
@@ -30,7 +35,8 @@
       "invalid_host": "Bitte einen Hostnamen oder eine IP-Adresse ohne Leerzeichen eingeben.",
       "invalid_port": "Der Port muss eine ganze Zahl zwischen 1 und 65535 sein.",
       "invalid_slave_id": "Die Slave-ID muss eine ganze Zahl zwischen 1 und 255 sein.",
-      "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 5 und 3600 Sekunden sein."
+      "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 10 und 3600 Sekunden sein.",
+      "invalid_allow_control": "Die Steuerfreigabe muss ein boolescher Wert sein."
     },
     "step": {
       "init": {
@@ -44,7 +50,11 @@
           "pool_installed": "Schwimmbad vorhanden",
           "room_sensor_installed": "Raumfühler vorhanden",
           "boiler_installed": "Kesseltemperaturfühler vorhanden (PELEO 14)",
-          "scan_interval": "Abfrageintervall (Sekunden)"
+          "scan_interval": "Abfrageintervall (Sekunden)",
+          "allow_control": "Heizungssteuerung über Home Assistant erlauben"
+        },
+        "data_description": {
+          "allow_control": "Standardmäßig nur lesen. Die Freigabe gilt nur für geprüfte Sollwerte. Puffer-/Kessel-Sollwerte und Coil-Schalter bleiben gesperrt. Voraussetzung: SystaComfort II ab V2.16, passende Herstellerunterlage und sichere Einstellungen am Regler. Änderungen werden nicht automatisch wiederholt."
         }
       }
     }

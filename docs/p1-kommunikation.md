@@ -1,5 +1,9 @@
 # P1: Kommunikation und Lebenszyklus
 
+Diese Dokumentation beschreibt den Stand von P1. Seit P3 ändern sich die
+Steuerplattformen und Hub-Schreibmethoden; die aktuellen Sperren und
+Rückleseprüfungen stehen in [P3-Steuerung](p3-steuerung.md).
+
 ## Auswirkungen auf die Plattformen
 
 | Plattform | Sichere P1-Änderung | Bewusst beibehalten |
@@ -88,7 +92,7 @@ Optionsänderungen verwenden weiterhin HA-Reload und dieselbe Config-Entry-ID.
   Es erfolgt keine DNS-Auflösung bei der Validierung.
 - Port: ganzzahlig 1–65535.
 - Slave-ID: ganzzahlig 1–255; Broadcast-ID 0 wird nicht angeboten.
-- Sensor-Abfrageintervall: ganzzahlig 5–3600 Sekunden, Standard 30 Sekunden.
+- Sensor-Abfrageintervall: seit dem P3-Sicherheitsreview ganzzahlig 10–3600 Sekunden, Standard 30 Sekunden.
 
 Neue Eingaben und Änderungen werden vor dem Speichern geprüft. Bei alten,
 früher ignorierten ungültigen Intervallen wird zur Laufzeit mit Warnung auf

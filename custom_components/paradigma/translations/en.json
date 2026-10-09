@@ -13,7 +13,11 @@
           "pool_installed": "Pool System Installed",
           "room_sensor_installed": "Room Sensors Installed",
           "boiler_installed": "Boiler temperature sensors installed (PELEO 14)",
-          "scan_interval": "Update Interval (Seconds)"
+          "scan_interval": "Update Interval (Seconds)",
+          "allow_control": "Allow heating control through Home Assistant"
+        },
+        "data_description": {
+          "allow_control": "Read-only by default. Permission applies only to verified setpoints. Buffer/boiler targets and coil switches remain blocked. Requires SystaComfort II V2.16 or later, matching manufacturer documentation and safe controller settings. Changes are not automatically renewed."
         }
       }
     },
@@ -22,7 +26,8 @@
       "invalid_host": "Enter a hostname or IP address without whitespace.",
       "invalid_port": "Port must be an integer between 1 and 65535.",
       "invalid_slave_id": "Device ID must be an integer between 1 and 255.",
-      "invalid_scan_interval": "Scan interval must be an integer between 5 and 3600 seconds."
+      "invalid_scan_interval": "Scan interval must be an integer between 10 and 3600 seconds.",
+      "invalid_allow_control": "Control permission must be a boolean value."
     }
   },
   "options": {
@@ -30,7 +35,8 @@
       "invalid_host": "Enter a hostname or IP address without whitespace.",
       "invalid_port": "Port must be an integer between 1 and 65535.",
       "invalid_slave_id": "Device ID must be an integer between 1 and 255.",
-      "invalid_scan_interval": "Scan interval must be an integer between 5 and 3600 seconds."
+      "invalid_scan_interval": "Scan interval must be an integer between 10 and 3600 seconds.",
+      "invalid_allow_control": "Control permission must be a boolean value."
     },
     "step": {
       "init": {
@@ -44,7 +50,11 @@
           "pool_installed": "Pool System Installed",
           "room_sensor_installed": "Room Sensors Installed",
           "boiler_installed": "Boiler temperature sensors installed (PELEO 14)",
-          "scan_interval": "Update Interval (Seconds)"
+          "scan_interval": "Update Interval (Seconds)",
+          "allow_control": "Allow heating control through Home Assistant"
+        },
+        "data_description": {
+          "allow_control": "Read-only by default. Permission applies only to verified setpoints. Buffer/boiler targets and coil switches remain blocked. Requires SystaComfort II V2.16 or later, matching manufacturer documentation and safe controller settings. Changes are not automatically renewed."
         }
       }
     }

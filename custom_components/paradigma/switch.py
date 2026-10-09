@@ -1,19 +1,16 @@
-"""Switch platform for Paradigma."""
+"""Legacy coil controls retained but blocked pending safe override sequencing."""
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import DeviceInfo
 from .const import DOMAIN
 
-SWITCHES = [
-    ("dhw_enable", 4),   # Bit 4
-    ("circ_enable", 6),  # Bit 6
-]
+SWITCHES = [("dhw_enable", 4), ("circ_enable", 6)]
+
 
 async def async_setup_entry(hass, entry, async_add_entities):
-    hub = hass.data[DOMAIN][entry.entry_id]
-    entities = []
-    for s in SWITCHES:
-        entities.append(ParadigmaSwitch(hub, s[0], s[1], entry))
-    async_add_entities(entities)
+    # Neither legacy toggle describes both release/block override bits safely.
+    async_add_entities([])
+
 
 class ParadigmaSwitch(SwitchEntity):
     def __init__(self, hub, key, address, entry):
@@ -23,31 +20,22 @@ class ParadigmaSwitch(SwitchEntity):
         self._attr_has_entity_name = True
         self._attr_translation_key = key
         self._attr_unique_id = f"{entry.entry_id}_switch_{address}"
-        self._is_on = False
+        self._is_on = None
 
     @property
     def device_info(self):
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._entry_id)},
-            name="Paradigma Heizung",
-            manufacturer="Paradigma",
-            model="SystaSmartC II",
-        )
+        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
+
+    @property
+    def available(self):
+        return False
 
     @property
     def is_on(self):
         return self._is_on
 
-    def update(self):
-        
-        res = self._hub.read_coils(self._address, 1)
-        if res:
-            self._is_on = res[0]
-
     def turn_on(self, **kwargs):
-        if self._hub.write_coil(self._address, True):
-            self._is_on = True
+        raise HomeAssistantError("Coil-Steuerung bis zur Bestätigung der Override-Sequenz gesperrt")
 
     def turn_off(self, **kwargs):
-        if self._hub.write_coil(self._address, False):
-            self._is_on = False
+        raise HomeAssistantError("Coil-Steuerung bis zur Bestätigung der Override-Sequenz gesperrt")

@@ -7,10 +7,10 @@ from homeassistant.core import callback
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_NAME, CONF_SCAN_INTERVAL
 from .const import (
     DOMAIN, DEFAULT_PORT, DEFAULT_SLAVE_ID, CONF_SLAVE_ID, DEFAULT_SCAN_INTERVAL,
-    CONF_SOLAR, CONF_HK2, CONF_POOL, CONF_ROOM, CONF_BOILER, DEFAULT_NAME
+    CONF_SOLAR, CONF_HK2, CONF_POOL, CONF_ROOM, CONF_BOILER, DEFAULT_NAME, CONF_ALLOW_CONTROL
 )
 from .hub import ParadigmaHub
-from .configuration import validate_config
+from .configuration import validate_config, control_allowed
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             errors = validate_config(user_input)
         if user_input is not None and not errors:
+            user_input = dict(user_input)
+            user_input[CONF_ALLOW_CONTROL] = control_allowed(user_input)
             # Verbindungstest vor dem Erstellen
             hub = ParadigmaHub(self.hass, user_input[CONF_NAME], user_input[CONF_HOST], user_input[CONF_PORT], user_input[CONF_SLAVE_ID])
             try:
@@ -47,6 +49,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): int,
                 vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
+                vol.Optional(CONF_ALLOW_CONTROL, default=False): bool,
                 vol.Optional(CONF_SOLAR, default=True): bool,
                 vol.Optional(CONF_HK2, default=False): bool,
                 vol.Optional(CONF_BOILER, default=True): bool,
@@ -69,9 +72,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             new_data = self.config_entry.data.copy()
             new_data.update(user_input)
+            # A partial or legacy options submission is never an implicit grant.
+            new_data[CONF_ALLOW_CONTROL] = user_input.get(CONF_ALLOW_CONTROL, False)
 
             errors = validate_config(new_data)
             if not errors:
+                # Permission never follows an endpoint change to another device.
+                if any(new_data.get(key) != self.config_entry.data.get(key)
+                       for key in (CONF_HOST, CONF_PORT, CONF_SLAVE_ID)):
+                    new_data[CONF_ALLOW_CONTROL] = False
+                changed = (new_data != self.config_entry.data
+                           or new_data != self.config_entry.options)
+                hub = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+                if changed and hub is not None:
+                    hub.revoke_control()
                 self.hass.config_entries.async_update_entry(
                     self.config_entry, data=new_data
                 )
@@ -86,6 +100,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Required(CONF_HOST, default=data.get(CONF_HOST)): str,
                 vol.Required(CONF_PORT, default=data.get(CONF_PORT)): int,
                 vol.Required(CONF_SLAVE_ID, default=data.get(CONF_SLAVE_ID)): int,
+                vol.Optional(CONF_ALLOW_CONTROL, default=control_allowed(data)): bool,
                 vol.Optional(CONF_SOLAR, default=data.get(CONF_SOLAR, True)): bool,
                 vol.Optional(CONF_HK2, default=data.get(CONF_HK2, False)): bool,
                 vol.Optional(CONF_BOILER, default=data.get(CONF_BOILER, True)): bool,

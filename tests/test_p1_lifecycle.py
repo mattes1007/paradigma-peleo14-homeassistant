@@ -25,10 +25,19 @@ class Hub(FakeHub):
     connect_ok = True
     no_responses = False
 
-    def __init__(self, *args):
+    def __init__(self, *args, allow_control=False, permission_check=None):
         super().__init__()
+        self._allow_control = allow_control is True
+        self._permission_check = permission_check
         self.closed = False
         Hub.instances.append(self)
+
+    @property
+    def control_enabled(self):
+        return self._allow_control and (self._permission_check is None or self._permission_check() is True)
+
+    def revoke_control(self):
+        self._allow_control = False
 
     def connect(self):
         return self.connect_ok
@@ -51,7 +60,8 @@ def load_setup_functions():
         CONF_SLAVE_ID='slave_id', DOMAIN='paradigma',
         PLATFORMS=['sensor', 'number', 'switch', 'water_heater'],
         ConfigEntryNotReady=ConfigEntryNotReady, ConfigEntryError=ConfigEntryError,
-        validate_config=FLOW['validate_config'],
+        validate_config=FLOW['validate_config'], control_allowed=FLOW['control_allowed'],
+        Platform=SimpleNamespace(SENSOR='sensor'),
         ParadigmaHub=Hub, ParadigmaDataCoordinator=SENSOR.ParadigmaDataCoordinator,
         dr=SimpleNamespace(async_get=lambda hass: SimpleNamespace(async_get_or_create=lambda **kw: None)),
         _LOGGER=logging.getLogger('test_setup'),

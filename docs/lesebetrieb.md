@@ -1,29 +1,22 @@
-# Empfehlung: erster Test ausschließlich mit Lesezugriffen
+# Nur-Lesen-Modus und erster Test
 
-**Aktuell gibt es keine zuverlässige Read-only-Option in der Integration.** Die Plattformen `number`, `switch` und `water_heater` werden neben `sensor` geladen. Setup und Aktualisierungen lesen; Serviceaufrufe oder vorhandene Automationen können jedoch schreiben. P2 verändert diese Plattformen und die beiden Hub-Schreibmethoden nicht.
+Seit P3 ist die Steuerung standardmäßig gesperrt. Die Option **„Heizungssteuerung über Home Assistant erlauben“** ist bei neuen Einträgen deaktiviert; bestehende Einträge ohne diese Option starten ebenfalls lesend. Im Nur-Lesen-Modus wird ausschließlich die Sensorplattform geladen. Keine Number-, Switch- oder Water-Heater-Entität wird als bedienbare Steuerung angelegt.
 
-## Empfohlene nächste Umsetzung
+Die Sperre sitzt zusätzlich in beiden Hub-Schreibmethoden. Nur ein echter boolescher Wert `True` in den maßgeblichen Konfigurationsdaten erlaubt überhaupt eine Prüfung freigegebener Schreibfunktionen. Fehlende/ungültige Werte, beispielsweise `1` oder `"true"`, bleiben gesperrt. Redundante alte `entry.options`-Werte können keine Freigabe bewirken. Eine alte Laufzeit wird vor geänderten Optionen, Reload und Unload sofort gesperrt und kann sich nicht selbst wieder freischalten. Endpunktwechsel setzen die gespeicherte Freigabe zurück.
 
-Vor einem ersten Test mit erreichbarer Heizung einen standardmäßig aktiven Read-only-Modus entwickeln:
+## Erster Test auf HAOS
 
-1. Beide Hub-Schreibmethoden vor jeder Client-Anforderung sperren und abgewiesene Aufrufe eindeutig melden. Das ist die zentrale Sicherung auch gegen versehentliche direkte Aufrufe.
-2. Im Lesemodus nur die Sensorplattform laden. Steuerplattformen erst nach bewusster Freigabe laden; vorhandene Unique-IDs erhalten.
-3. Neue und bestehende Konfigurationen standardmäßig lesend behandeln und Reload/Unload sowie alle Schreib-Einstiegspunkte mit Fake-Clients testen. Es darf keine Schreibanforderung den Client erreichen.
+1. Backup und sichere Wiederherstellung gemäß [HACS-Anleitung](hacs-installation.md) vorbereiten. Bestehende Steuerautomationen pausieren, die vorherige Integration und andere Modbus-Clients berücksichtigen.
+2. Nach einem Neustart sicherstellen, dass der P3-Code geladen ist. Die Steuerfreigabe deaktiviert lassen. Die Sperre existiert nicht in älteren Original-/P0-/P1-/P2-Versionen.
+3. Nur Sensorwerte, Verfügbarkeit, Logs und Wiederverbindung prüfen. Die Einrichtung selbst verwendet einen gesonderten, ebenfalls nicht schreibberechtigten Test-Hub.
+4. Falls die installierte SystaComfort-Version dies unterstützt, am Hauptbedienteil zusätzlich den Modbus-Zugriff auf **lesen** begrenzen. Menübezeichnung und Voraussetzungen anhand der passenden Herstellerunterlage prüfen; P3 verändert keine Einstellung am Regler.
 
-Das ist eine Empfehlung für ein separates Arbeitspaket, **keine bereits implementierte Funktion**. Der Wechsel der geladenen Plattformen und bestehende Automationen benötigen eigene Upgrade-Tests.
+Die zentrale Sperre gilt für diese Integration. Sie schützt nicht vor anderen Integrationen, externen Modbus-Clients oder bereits zuvor gesendeten Befehlen. Ein bereits begonnener oder übertragener Schreibzugriff lässt sich bei einem Optionswechsel nicht zurückrufen. Bereits aktive Override-Werte können bis zu ihrem geräteseitigen Ablauf wirksam bleiben; Sperren, Unload und Read-only-Setup senden ausdrücklich keine Rücksetzbefehle.
 
-## Aktuelle Schreibpfade
+## Bewusste Freigabe
 
-| Plattform | Ziel | Hub-Methode / Modbus-Funktion |
-| --- | --- | --- |
-| Number | Holding 2, 3 (HK2 optional), 44, 45 | `write_register`, FC `0x10` |
-| Switch | Coils 4 und 6 | `write_coil`, FC `0x05` |
-| Water Heater | Holding 8; Einschalten Coil 4, Ausschalten Coil 5 | beide Methoden |
+Nur nach Prüfung von Regler-/Firmware-Version, Herstellerunterlage, Anlagenkonfiguration und Rückfallverhalten die Option aktivieren. Danach sind ausschließlich die in [P3-Steuerung](p3-steuerung.md) geprüften Sollwerte bedienbar. Puffer-/Kessel-Sollwerte und alle Coil-Schalter bleiben auch dann gesperrt.
 
-Diese Adressen beschreiben den vorhandenen Code, keine bestätigte Steuerfreigabe für die PELEO 14. Die Schreiblogik bleibt unverändert.
+Zum erneuten Sperren die Option deaktivieren. Die bisherige Runtime wird sofort gesperrt, danach neu geladen; vorhandene Steuerentitäten werden entfernt und können als nicht verfügbare Registry-Einträge verbleiben. Sensoridentitäten bleiben erhalten. Bei einem gescheiterten Reload/Unload bleibt die alte Runtime gesperrt.
 
-Entitäten auszublenden, optionale Komponenten abzuwählen oder Automationen zu pausieren garantiert keine Schreibsperre. Das Deaktivieren aller bekannten Steuerentitäten ist eine zusätzliche Vorsichtsmaßnahme, schützt aber nicht vor übersehenen oder neu angelegten Entitäten und direkten Schreibaufrufen.
-
-Bis zur Umsetzung sind sichere Tests mit Fake-Modbus-Clients oder in einer Netzumgebung ohne erreichbare Heizung möglich. Für einen echten Lesetest wäre alternativ ein unabhängig geprüfter Modbus-Proxy erforderlich, der ausschließlich FC `0x03` und `0x04` zulässt und alle anderen Funktionen verwirft. Home Assistant darf dann keinen direkten Netzwerkpfad zur Heizung besitzen. Eine gewöhnliche TCP-Firewall auf Port 502 unterscheidet Lese- und Schreibfunktionen nicht.
-
-**Ohne zentrale Schreibsperre oder eine solche geprüfte Netzwerksicherung wird ein erster Live-Test noch nicht empfohlen.** In P2 wurden weder Home Assistant noch die Heizung kontaktiert.
+Die lokalen Tests verwenden ausschließlich Fake-Clients. Ein echter HAOS-/Heizungstest wurde nicht durchgeführt.

@@ -36,7 +36,7 @@ class PackagingTests(unittest.TestCase):
                       if path.is_dir() and path.name != "__pycache__"]
         self.assertEqual([path.name for path in components], ["paradigma"])
         for name in ("__init__.py", "config_flow.py", "hub.py", "sensor.py",
-                     "number.py", "switch.py", "water_heater.py", "manifest.json",
+                     "number.py", "switch.py", "water_heater.py", "control.py", "manifest.json",
                      "strings.json", "translations/de.json", "translations/en.json"):
             with self.subTest(file=name):
                 self.assertTrue((COMPONENT / name).is_file())

@@ -69,6 +69,7 @@ FLOW = load_flow_classes()
 
 class FakeHass:
     def __init__(self):
+        self.data = {}
         self.config_entries = SimpleNamespace(async_update_entry=self.update_entry)
 
     @staticmethod
@@ -98,7 +99,7 @@ class ConfigFlowTests(unittest.TestCase):
 
     def test_old_options_can_be_opened_and_saved(self):
         for boiler in (False, True):
-            entry = SimpleNamespace(data={
+            entry = SimpleNamespace(entry_id='existing-entry', options={}, data={
                 'name': 'Bestehender Name', 'host': 'offline.example',
                 'port': 502, 'slave_id': 1, 'wood_installed': True,
                 'boiler_installed': boiler, 'solar_installed': False,
@@ -123,7 +124,7 @@ class ConfigFlowTests(unittest.TestCase):
         flow.hass = FakeHass()
         user_schema = asyncio.run(flow.async_step_user())['data_schema']
         options = FLOW['OptionsFlowHandler'](None)
-        options.config_entry = SimpleNamespace(data={})
+        options.config_entry = SimpleNamespace(entry_id='existing-entry', options={}, data={})
         options.hass = FakeHass()
         option_schema = asyncio.run(options.async_step_init())['data_schema']
         for name in ('strings.json', 'translations/de.json', 'translations/en.json'):
