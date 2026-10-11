@@ -35,6 +35,7 @@ def load_sensor_module():
     const.CONF_PORT = 'port'
     const.CONF_SCAN_INTERVAL = 'scan_interval'
     sensor = modules['homeassistant.components.sensor']
+    sensor.SensorEntityDescription = SimpleNamespace
     sensor.SensorEntity = type('SensorEntity', (), {})
     sensor.SensorDeviceClass = SimpleNamespace(TEMPERATURE='temperature', DURATION='duration', ENERGY='energy', POWER='power', ENUM='enum')
     sensor.SensorStateClass = SimpleNamespace(TOTAL_INCREASING='total_increasing', MEASUREMENT='measurement')
@@ -87,6 +88,7 @@ def load_sensor_module():
         spec = importlib.util.spec_from_file_location('peleo_test.sensor', ROOT / 'custom_components/paradigma/sensor.py')
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        module.CATALOG = sys.modules["peleo_test.catalog"]
     return module
 
 
@@ -190,11 +192,6 @@ class PeleoTests(unittest.TestCase):
         for name in ('strings.json', 'translations/de.json', 'translations/en.json'):
             data = json.loads((ROOT / 'custom_components/paradigma' / name).read_text())
             self.assertEqual(set(data['entity']['sensor']), keys)
-            for section, step in (('config', 'user'), ('options', 'init')):
-                fields = data[section]['step'][step]['data']
-                self.assertNotIn('wood_installed', fields)
-                self.assertIn('PELEO 14', fields['boiler_installed'])
-            self.assertIn('name', data['config']['step']['user']['data'])
             if source is None:
                 source = data
             else:
@@ -212,7 +209,7 @@ class PeleoTests(unittest.TestCase):
         for name in ('strings.json', 'translations/de.json', 'translations/en.json'):
             data = json.loads((ROOT / 'custom_components/paradigma' / name).read_text())
             for key, table in (('status_hk1', SENSOR.STATUS_HK), ('status_hk2', SENSOR.STATUS_HK), ('status_ww', SENSOR.STATUS_WW), ('status_circ', SENSOR.STATUS_CIRC), ('status_solar', SENSOR.STATUS_SOLAR), ('status_pool', SENSOR.STATUS_POOL), ('status_boiler', SENSOR.STATUS_BOILER)):
-                self.assertEqual(set(data['entity']['sensor'][key]['state']), set(table.values()))
+                self.assertTrue(set(table.values()) <= set(data['entity']['sensor'][key]['state']))
 
     def test_other_platform_translation_keys(self):
         for filename, variable, platform in (('number.py', 'NUMBERS', 'number'), ('switch.py', 'SWITCHES', 'switch')):

@@ -1,3 +1,5 @@
+> Historischer Bericht. Die modulare Version ersetzt den globalen Optionsdialog und separate Plattform-Poller. Maßgeblich: [Konfiguration](KONFIGURATION.md), [Steuerfunktionen](STEUERFUNKTIONEN.md), [Migration](MIGRATION.md).
+
 # P1: Kommunikation und Lebenszyklus
 
 Diese Dokumentation beschreibt den Stand von P1. Seit P3 ändern sich die

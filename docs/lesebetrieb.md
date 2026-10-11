@@ -1,3 +1,5 @@
+> Historischer Bericht. Die modulare Version ersetzt den globalen Optionsdialog und separate Plattform-Poller. Maßgeblich: [Konfiguration](KONFIGURATION.md), [Steuerfunktionen](STEUERFUNKTIONEN.md), [Migration](MIGRATION.md).
+
 # Nur-Lesen-Modus und erster Test
 
 Seit P3 ist die Steuerung standardmäßig gesperrt. Die Option **„Heizungssteuerung über Home Assistant erlauben“** ist bei neuen Einträgen deaktiviert; bestehende Einträge ohne diese Option starten ebenfalls lesend. Im Nur-Lesen-Modus wird ausschließlich die Sensorplattform geladen. Keine Number-, Switch- oder Water-Heater-Entität wird als bedienbare Steuerung angelegt.

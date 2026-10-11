@@ -2,6 +2,8 @@
 
 ## Verpackung und Version
 
+Modularer Entwicklungsstand auf `feature/modular-ultimate`: Empfehlung **2.0.0-beta.2** nach Review und HA-Test. Manifest bleibt bis Veröffentlichung auf 2.0.0-beta.1. Vor Update unbedingt [Migration und Rollback](MIGRATION.md) beachten. Lokale Tags sind kein Nachweis über vorhandene GitHub-Releases.
+
 Die Integration verwendet **direkte Installation aus dem Repository**: `content_in_root: false`, `zip_release: false`, genau eine Integration unter `custom_components/paradigma/`. Alle Laufzeitdateien und lokale Markenbilder liegen in diesem Verzeichnis. Es gibt keinen Build-Schritt und keine generierten Laufzeitdateien; ein zusätzliches ZIP würde nur eine zweite, potenziell abweichende Verpackung schaffen. Der bisherige ZIP-Dateiname entfällt. `render_readme` entfällt ebenfalls aus der HACS-Konfiguration.
 
 Die Manifest-Version lautet **2.0.0-beta.1**. Die neue Hauptversion kennzeichnet den spezialisierten PELEO-Fork; die Vorabversion macht den noch ausstehenden HAOS-Test sichtbar. Die Mindestversion in HACS ist Core **2026.10.0**, entsprechend der Zielumgebung und der bestehenden PyModbus-Abhängigkeit.
@@ -46,6 +48,6 @@ Wurden Konfiguration, Registry oder andere Daten verändert, das vollständige B
 
 ## Prüfungen und Grenzen
 
-Lokale Tests prüfen JSON-Metadaten, Verzeichnisstruktur, Markenbilder, konsistente Übersetzungsschlüssel, Dokumentationsverweise sowie die P0-/P1-Regressionen. CI ergänzt HACS-Validierung, Hassfest und Offline-Tests unter Python 3.12/3.14. Die externen Actions werden erst nach Veröffentlichung ausgeführt. Ein lokaler Erfolg ersetzt weder diese Validatoren noch einen echten HACS-/HAOS-Installations- und Upgrade-Test.
+Lokale Tests prüfen JSON-Metadaten, Verzeichnisstruktur, Markenbilder, konsistente Übersetzungsschlüssel, Dokumentationsverweise sowie die P0-/P1-Regressionen. CI ergänzt HACS-Validierung, Hassfest und Offline-Tests unter Python 3.12/3.14. Der offizielle Hassfest-Python-Validator und HACS-JSON-Schemas wurden lokal erfolgreich ausgeführt; die vollständige HACS-Action auf einem GitHub-Ref bleibt offen. [QA-Bericht](QA-BERICHT.md). Ein lokaler Erfolg ersetzt weder diese Validatoren noch einen echten HACS-/HAOS-Installations- und Upgrade-Test.
 
 Offizielle Grundlagen: [HACS Integration](https://www.hacs.xyz/docs/publish/integration/), [HACS-Konfiguration](https://www.hacs.xyz/docs/publish/start/), [lokale Markenbilder](https://developers.home-assistant.io/docs/core/integration/brand_images/), [HAOS-Backups](https://www.home-assistant.io/common-tasks/os/#backups).

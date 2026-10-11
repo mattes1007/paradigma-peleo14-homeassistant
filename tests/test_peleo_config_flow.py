@@ -59,6 +59,10 @@ def load_flow_classes():
     namespace['_LOGGER'] = logging.getLogger('test_configuration')
     config_nodes = [node for node in config_source.body if isinstance(node, (ast.FunctionDef, ast.Assign)) and not (isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == '_LOGGER' for t in node.targets))]
     exec(compile(ast.Module(body=config_nodes, type_ignores=[]), 'configuration.py', 'exec'), namespace)
+    from test_peleo_sensors import SENSOR
+    catalog = SENSOR.CATALOG
+    namespace.update({k: getattr(catalog, k) for k in ('MODELS', 'VERIFIED_MODELS', 'REGISTERS', 'CONTROLS', 'COMPONENTS', 'COMPONENT_NAMES', 'migrate_data', 'allowed_addresses')})
+    namespace['select'] = lambda *a, **kw: list(a[0])
     classes = ast.Module(body=[node for node in source.body if isinstance(node, ast.ClassDef)], type_ignores=[])
     exec(compile(classes, 'config_flow.py', 'exec'), namespace)
     return namespace
@@ -82,55 +86,45 @@ class FakeHass:
 
 
 class ConfigFlowTests(unittest.TestCase):
-    def test_new_installation_schema_and_sensor_defaults(self):
+    def test_new_wizard_read_only_and_three_targets(self):
         flow = FLOW['ConfigFlow']()
         flow.hass = FakeHass()
-        form = asyncio.run(flow.async_step_user())
-        schema = form['data_schema']
-        self.assertNotIn('wood_installed', schema)
-        self.assertEqual(next(k.default for k in schema if k == 'name'), 'PELEO 14')
-        data = {str(key): key.default for key in schema}
-        data['host'] = 'offline.example'
-        result = asyncio.run(flow.async_step_user(data))
-        self.assertEqual(result['data'], data)
-        self.assertEqual(result['title'], 'PELEO 14')
-        self.assertEqual(FLOW['DOMAIN'], 'paradigma')
-        self.assertEqual(FLOW['ConfigFlow'].VERSION, 1)
+        result = asyncio.run(flow.async_step_user(dict(name='PELEO', host='offline.example', port=502, slave_id=1, model='systacomfort_ii')))
+        self.assertEqual(result['step_id'], 'components')
+        result = asyncio.run(flow.async_step_components({'components': ['hk1','buffer','boiler']}))
+        while flow._remaining:
+            keys = [k for k,r in FLOW['REGISTERS'].items() if r.component == flow._remaining[0] and r.definition[6] != 'room_sensor_installed']
+            result = asyncio.run(flow.async_step_sensors({'sensors': keys}))
+        result = asyncio.run(flow.async_step_controls({'controls': [], 'confirm_control': False}))
+        self.assertEqual(result['step_id'], 'summary')
+        result = asyncio.run(flow.async_step_summary({}))
+        self.assertFalse(result['data']['allow_control'])
+        self.assertTrue({'external_flow_hk1','target_buffer_top','target_boiler'} <= set(result['data']['sensors']))
+        self.assertEqual(FLOW['ConfigFlow'].VERSION, 2)
 
-    def test_old_options_can_be_opened_and_saved(self):
-        for boiler in (False, True):
-            entry = SimpleNamespace(entry_id='existing-entry', options={}, data={
-                'name': 'Bestehender Name', 'host': 'offline.example',
-                'port': 502, 'slave_id': 1, 'wood_installed': True,
-                'boiler_installed': boiler, 'solar_installed': False,
-            })
-            original = entry.data.copy()
-            flow = FLOW['OptionsFlowHandler'](entry)
-            # HA supplies this property; the test does not validate that framework.
-            flow.config_entry = entry
-            flow.hass = FakeHass()
-            form = asyncio.run(flow.async_step_init())
-            self.assertNotIn('wood_installed', form['data_schema'])
-            self.assertEqual(next(k.default for k in form['data_schema'] if k == 'boiler_installed'), boiler)
-            result = asyncio.run(flow.async_step_init({'pool_installed': True}))
-            for key, value in original.items():
-                self.assertEqual(entry.data[key], value)
-            self.assertTrue(entry.data['pool_installed'])
-            self.assertEqual(result['data'], entry.data)
+    def test_options_saved_only_at_summary(self):
+        entry = SimpleNamespace(entry_id='existing-entry', options={}, data=dict(name='Old',host='offline.example',port=502,slave_id=1,allow_control=True))
+        flow = FLOW['OptionsFlowHandler'](entry)
+        flow.config_entry = entry
+        flow.hass = FakeHass()
+        old = entry.data.copy()
+        asyncio.run(flow.async_step_init({'scan_interval': 40}))
+        self.assertEqual(entry.data, old)
+        asyncio.run(flow.async_step_components({'components': ['hk1']}))
+        asyncio.run(flow.async_step_sensors({'sensors': ['flow_hk1']}))
+        asyncio.run(flow.async_step_controls({'controls': ['flow_hk1'], 'confirm_control': True}))
+        result = asyncio.run(flow.async_step_summary({}))
+        self.assertEqual(result['data'], {})
+        self.assertEqual(entry.data['controls'], ['flow_hk1'])
+        self.assertEqual(entry.data['scan_interval'], 40)
 
-    def test_every_schema_field_has_translation(self):
+    def test_translations_cover_wizard(self):
         import json
-        flow = FLOW['ConfigFlow']()
-        flow.hass = FakeHass()
-        user_schema = asyncio.run(flow.async_step_user())['data_schema']
-        options = FLOW['OptionsFlowHandler'](None)
-        options.config_entry = SimpleNamespace(entry_id='existing-entry', options={}, data={})
-        options.hass = FakeHass()
-        option_schema = asyncio.run(options.async_step_init())['data_schema']
-        for name in ('strings.json', 'translations/de.json', 'translations/en.json'):
-            data = json.loads((ROOT / 'custom_components/paradigma' / name).read_text())
-            self.assertEqual(set(user_schema), set(data['config']['step']['user']['data']))
-            self.assertEqual(set(option_schema), set(data['options']['step']['init']['data']))
+        for filename in ('strings.json','translations/de.json','translations/en.json'):
+            d=json.loads((ROOT/'custom_components/paradigma'/filename).read_text())
+            for section in ('config','options'):
+                self.assertTrue({'components','sensors','controls','summary'} <= set(d[section]['step']))
+            self.assertEqual(set(d['selector']['sensors']['options']),set(FLOW['REGISTERS']))
 
 
 if __name__ == '__main__':

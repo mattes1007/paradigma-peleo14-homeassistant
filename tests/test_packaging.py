@@ -48,7 +48,7 @@ class PackagingTests(unittest.TestCase):
         self.assertEqual(manifest["codeowners"], ["@mattes1007"])
         self.assertEqual(manifest["documentation"], REPOSITORY)
         self.assertEqual(manifest["issue_tracker"], REPOSITORY + "/issues")
-        self.assertEqual(manifest["version"], "2.0.0-beta.1")
+        self.assertEqual(manifest["version"], "2.0.0-beta.2")
         self.assertTrue(manifest["config_flow"])
         self.assertEqual(manifest["requirements"], ["pymodbus>=3.13.1"])
         self.assertEqual(manifest["iot_class"], "local_polling")

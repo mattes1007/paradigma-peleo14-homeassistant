@@ -75,6 +75,7 @@ def load_hub():
     modules['pymodbus.exceptions'].ModbusException = ModbusException
     modules['p1_hub_package'] = ModuleType('p1_hub_package')
     modules['p1_hub_package'].__path__ = [str(ROOT / 'custom_components/paradigma')]
+    modules['p1_hub_package.catalog'] = __import__('test_peleo_sensors').SENSOR.CATALOG
     with patch.dict(sys.modules, modules):
         spec = importlib.util.spec_from_file_location('p1_hub_package.hub', ROOT / 'custom_components/paradigma/hub.py')
         module = importlib.util.module_from_spec(spec)
@@ -227,7 +228,7 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.hub._client.overrides[('holding', 27)] = Response([65535, 65535])
         with self.assertLogs(HUB._LOGGER, level='INFO'):
             await self.coordinator.async_refresh()
-        self.assertTrue(self.entity.available)
+        self.assertFalse(self.entity.available)
         self.assertIsNone(self.entity.native_value)
 
     async def test_configured_interval_and_no_duplicate_initial_refresh(self):

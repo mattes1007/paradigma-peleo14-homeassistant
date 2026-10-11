@@ -24,7 +24,7 @@ class ParadigmaSwitch(SwitchEntity):
 
     @property
     def device_info(self):
-        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
+        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)})
 
     @property
     def available(self):

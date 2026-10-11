@@ -2,15 +2,16 @@
 from homeassistant.components.number import NumberEntity
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity import DeviceInfo
+from .catalog import CONTROLS, REGISTERS
 from .const import DOMAIN, CONF_HK2
 from .control import decode_temperature, encode_temperature, SetpointConfirmation
 
 # Preserve definitions/identities; the hub approves only documented writers.
 NUMBERS = [
-    ("setpoint_flow_hk1", 2, 20, 80, 1, False),
-    ("setpoint_flow_hk2", 3, 20, 80, 1, True),
-    ("setpoint_buffer_top", 44, 20, 90, 0.5, False),
-    ("setpoint_boiler", 45, 20, 90, 0.5, False),
+    ("setpoint_flow_hk1", CONTROLS["flow_hk1"][1], *[v / 10 for v in CONTROLS["flow_hk1"][2:]], False),
+    ("setpoint_flow_hk2", CONTROLS["flow_hk2"][1], *[v / 10 for v in CONTROLS["flow_hk2"][2:]], True),
+    ("setpoint_buffer_top", REGISTERS["target_buffer_top"].definition[5], 20, 90, 0.5, False),
+    ("setpoint_boiler", REGISTERS["target_boiler"].definition[5], 20, 90, 0.5, False),
 ]
 
 
@@ -27,6 +28,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class ParadigmaNumber(NumberEntity):
+    _attr_should_poll = False
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self.async_on_remove(self._hub.coordinator.async_add_listener(self._coordinator_updated))
+        self._coordinator_updated()
+
+    def _coordinator_updated(self):
+        self.update()
+        self.async_write_ha_state()
+
     def __init__(self, hub, key, address, min_val, max_val, step, entry):
         self._hub = hub
         self._address = address
@@ -34,6 +46,7 @@ class ParadigmaNumber(NumberEntity):
         self._attr_has_entity_name = True
         self._attr_translation_key = key
         self._attr_unique_id = f"{entry.entry_id}_num_{address}"
+        self._attr_native_unit_of_measurement = "°C"
         self._attr_native_min_value = min_val
         self._attr_native_max_value = max_val
         self._attr_native_step = step
@@ -43,18 +56,19 @@ class ParadigmaNumber(NumberEntity):
 
     @property
     def device_info(self):
-        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
+        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)})
 
     @property
     def available(self):
-        return self._attr_available and self._hub.can_write_register(self._address)
+        return (getattr(self._hub.coordinator, "last_update_success", False)
+                and self._attr_available and self._hub.can_write_register(self._address))
 
     @property
     def extra_state_attributes(self):
         return self._confirmation.attributes
 
     def update(self):
-        self._attr_native_value = decode_temperature(self._hub.read_holding_registers(self._address, 1))
+        self._attr_native_value = decode_temperature([(self._hub.coordinator.data or {}).get(f"holding_{self._address}")])
         self._attr_available = self._attr_native_value is not None
         self._confirmation.observe(self._attr_native_value)
 
@@ -74,7 +88,9 @@ class ParadigmaNumber(NumberEntity):
         self._confirmation.acknowledge()
         # A protocol acknowledgement is not an applied setpoint. Read the actual
         # holding value and keep it even when the controller clamps the request.
-        self.update()
+        self._attr_native_value = decode_temperature(self._hub.read_holding_registers(self._address, 1))
+        self._attr_available = self._attr_native_value is not None
+        self._confirmation.observe(self._attr_native_value)
         self.schedule_update_ha_state()
         if self._attr_native_value is None:
             raise HomeAssistantError("Schreiben bestätigt, Rücklesen des Sollwerts fehlgeschlagen")

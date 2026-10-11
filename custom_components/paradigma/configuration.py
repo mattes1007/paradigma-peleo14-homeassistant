@@ -3,6 +3,7 @@ import logging
 
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SCAN_INTERVAL
 
+from .catalog import allowed_addresses
 from .const import CONF_SLAVE_ID, DEFAULT_SCAN_INTERVAL, CONF_ALLOW_CONTROL
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,4 +45,4 @@ def scan_interval(data):
 
 def control_allowed(data):
     """Only the literal boolean True authorizes control; legacy entries fail closed."""
-    return data.get(CONF_ALLOW_CONTROL) is True
+    return bool(allowed_addresses(data))
