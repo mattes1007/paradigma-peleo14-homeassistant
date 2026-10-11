@@ -2,23 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Paradigma Heizung verbinden",
+        "title": "Verbindung",
+        "description": "SystaSmartC II ist noch nicht verifiziert. Bestehende Einträge bleiben im Bestandsprofil lesbar.",
         "data": {
           "name": "Name",
-          "host": "IP-Adresse",
+          "host": "Hostname / IP",
           "port": "Port",
-          "slave_id": "Slave ID / Unit ID",
-          "solar_installed": "Solaranlage vorhanden",
-          "hk2_installed": "Heizkreis 2 vorhanden",
-          "pool_installed": "Schwimmbad vorhanden",
-          "room_sensor_installed": "Raumfühler vorhanden",
-          "boiler_installed": "Kesseltemperaturfühler vorhanden (PELEO 14)",
-          "scan_interval": "Abfrageintervall (Sekunden)",
-          "allow_control": "Heizungssteuerung über Home Assistant erlauben"
-        },
-        "data_description": {
-          "allow_control": "Standardmäßig nur lesen. Die Freigabe gilt nur für geprüfte Sollwerte. Puffer-/Kessel-Sollwerte und Coil-Schalter bleiben gesperrt. Voraussetzung: SystaComfort II ab V2.16, passende Herstellerunterlage und sichere Einstellungen am Regler. Änderungen werden nicht automatisch wiederholt."
+          "slave_id": "Modbus Unit ID",
+          "model": "Reglermodell (Firmware bestätigen)",
+          "scan_interval": "Abfrageintervall (Sekunden)"
         }
+      },
+      "components": {
+        "title": "Baugruppen auswählen",
+        "data": {
+          "components": "Vorhandene Baugruppen"
+        }
+      },
+      "sensors": {
+        "title": "Sensoren auswählen",
+        "description": "{component}: Sensoren dieser Baugruppe auswählen. Raumwerte benötigen einen Raumfühler.",
+        "data": {
+          "sensors": "Lesesensoren"
+        }
+      },
+      "controls": {
+        "title": "Optionale Steuerfunktionen",
+        "description": "Nur SystaComfort II / Compact C ab Firmware 2.16 mit TH-3000 bestätigen. HK: Vorlaufgrenze wird geprüft; Warmwasser: vorhandenes Freigabe-Override nötig. Vorgaben gelten etwa fünf Minuten, keine automatische Erneuerung. Sichere Rückfalleinstellungen am Regler prüfen. Unverifizierte Bestandsfreigaben werden nur erhalten, nicht erweitert.",
+        "data": {
+          "controls": "Einzeln freigegebene Funktionen",
+          "confirm_control": "Modell, Voraussetzungen und Rückfall geprüft"
+        }
+      },
+      "summary": {
+        "title": "Auswahl übernehmen",
+        "description": "Baugruppen: {components}\nLesesensoren: {sensor_count}\nSteuerfunktionen: {controls}\nNicht vorhandene Register bleiben unbekannt. Lesen erteilt keine Schreibfreigabe."
       }
     },
     "error": {
@@ -27,7 +45,9 @@
       "invalid_port": "Der Port muss eine ganze Zahl zwischen 1 und 65535 sein.",
       "invalid_slave_id": "Die Slave-ID muss eine ganze Zahl zwischen 1 und 255 sein.",
       "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 10 und 3600 Sekunden sein.",
-      "invalid_allow_control": "Die Steuerfreigabe muss ein boolescher Wert sein."
+      "invalid_allow_control": "Die Steuerfreigabe muss ein boolescher Wert sein.",
+      "invalid_selection": "Ungültige Auswahl",
+      "confirm_control": "Voraussetzungen bitte ausdrücklich bestätigen."
     }
   },
   "options": {
@@ -36,107 +56,395 @@
       "invalid_port": "Der Port muss eine ganze Zahl zwischen 1 und 65535 sein.",
       "invalid_slave_id": "Die Slave-ID muss eine ganze Zahl zwischen 1 und 255 sein.",
       "invalid_scan_interval": "Das Abfrageintervall muss eine ganze Zahl zwischen 10 und 3600 Sekunden sein.",
-      "invalid_allow_control": "Die Steuerfreigabe muss ein boolescher Wert sein."
+      "invalid_allow_control": "Die Steuerfreigabe muss ein boolescher Wert sein.",
+      "invalid_selection": "Ungültige Auswahl",
+      "confirm_control": "Voraussetzungen bitte ausdrücklich bestätigen."
     },
     "step": {
       "init": {
-        "title": "Paradigma Optionen",
+        "title": "Verbindung",
+        "description": "SystaSmartC II ist noch nicht verifiziert. Bestehende Einträge bleiben im Bestandsprofil lesbar.",
         "data": {
-          "host": "IP-Adresse",
+          "host": "Hostname / IP",
           "port": "Port",
-          "slave_id": "Slave ID",
-          "solar_installed": "Solaranlage vorhanden",
-          "hk2_installed": "Heizkreis 2 vorhanden",
-          "pool_installed": "Schwimmbad vorhanden",
-          "room_sensor_installed": "Raumfühler vorhanden",
-          "boiler_installed": "Kesseltemperaturfühler vorhanden (PELEO 14)",
-          "scan_interval": "Abfrageintervall (Sekunden)",
-          "allow_control": "Heizungssteuerung über Home Assistant erlauben"
-        },
-        "data_description": {
-          "allow_control": "Standardmäßig nur lesen. Die Freigabe gilt nur für geprüfte Sollwerte. Puffer-/Kessel-Sollwerte und Coil-Schalter bleiben gesperrt. Voraussetzung: SystaComfort II ab V2.16, passende Herstellerunterlage und sichere Einstellungen am Regler. Änderungen werden nicht automatisch wiederholt."
+          "slave_id": "Modbus Unit ID",
+          "model": "Reglermodell (Firmware bestätigen)",
+          "scan_interval": "Abfrageintervall (Sekunden)"
         }
+      },
+      "components": {
+        "title": "Baugruppen auswählen",
+        "data": {
+          "components": "Vorhandene Baugruppen"
+        }
+      },
+      "sensors": {
+        "title": "Sensoren auswählen",
+        "description": "{component}: Sensoren dieser Baugruppe auswählen. Raumwerte benötigen einen Raumfühler.",
+        "data": {
+          "sensors": "Lesesensoren"
+        }
+      },
+      "controls": {
+        "title": "Optionale Steuerfunktionen",
+        "description": "Nur SystaComfort II / Compact C ab Firmware 2.16 mit TH-3000 bestätigen. HK: Vorlaufgrenze wird geprüft; Warmwasser: vorhandenes Freigabe-Override nötig. Vorgaben gelten etwa fünf Minuten, keine automatische Erneuerung. Sichere Rückfalleinstellungen am Regler prüfen. Unverifizierte Bestandsfreigaben werden nur erhalten, nicht erweitert.",
+        "data": {
+          "controls": "Einzeln freigegebene Funktionen",
+          "confirm_control": "Modell, Voraussetzungen und Rückfall geprüft"
+        }
+      },
+      "summary": {
+        "title": "Auswahl übernehmen",
+        "description": "Baugruppen: {components}\nLesesensoren: {sensor_count}\nSteuerfunktionen: {controls}\nNicht vorhandene Register bleiben unbekannt. Lesen erteilt keine Schreibfreigabe."
       }
     }
   },
   "entity": {
     "number": {
-      "setpoint_flow_hk1": { "name": "Soll-Vorlauf HK1" },
-      "setpoint_flow_hk2": { "name": "Soll-Vorlauf HK2" },
-      "setpoint_buffer_top": { "name": "Soll Puffer Oben" },
-      "setpoint_boiler": { "name": "Soll Kessel" }
+      "setpoint_flow_hk1": {
+        "name": "Soll-Vorlauf HK1"
+      },
+      "setpoint_flow_hk2": {
+        "name": "Soll-Vorlauf HK2"
+      },
+      "setpoint_buffer_top": {
+        "name": "Soll Puffer Oben"
+      },
+      "setpoint_boiler": {
+        "name": "Soll Kessel"
+      }
     },
     "switch": {
-      "dhw_enable": { "name": "Warmwasser Freigabe" },
-      "circ_enable": { "name": "Zirkulation Freigabe" }
+      "dhw_enable": {
+        "name": "Warmwasser Freigabe"
+      },
+      "circ_enable": {
+        "name": "Zirkulation Freigabe"
+      }
     },
     "water_heater": {
-      "dhw": { "name": "Warmwasser Sollwert" }
+      "dhw": {
+        "name": "Warmwasser Sollwert"
+      }
     },
     "sensor": {
-      "outdoor_temp": { "name": "Außentemperatur" },
-      "flow_hk1": { "name": "Vorlauf HK1" },
-      "return_hk1": { "name": "Rücklauf HK1" },
-      "dhw_temp": { "name": "Warmwasser Temperatur" },
-      "buffer_top": { "name": "Puffer Oben" },
-      "buffer_bottom": { "name": "Puffer Unten" },
-      "circ_return_temp": { "name": "Rücklauf Zirkulation" },
-      "room_temp_hk1": { "name": "Raumtemperatur HK1" },
-      "room_temp_hk2": { "name": "Raumtemperatur HK2" },
-      "boiler_flow": { "name": "Kessel Vorlauf" },
-      "boiler_return": { "name": "Kessel Rücklauf" },
-      "boiler_hours": { "name": "PELEO 14 Betriebsstunden" },
-      "boiler_starts": { "name": "PELEO 14 Kesselstarts" },
-      "flow_hk2": { "name": "Vorlauf HK2" },
-      "return_hk2": { "name": "Rücklauf HK2" },
-      "collector_temp": { "name": "Kollektortemperatur" },
-      "solar_power": { "name": "Solar Leistung" },
-      "solar_day": { "name": "Solar Tagesertrag" },
-      "solar_total": { "name": "Solar Gesamtertrag" },
-      "pool_temp": { "name": "Pool Temperatur" },
-      "pool_flow": { "name": "Pool Vorlauf" },
-      "pool_return": { "name": "Pool Rücklauf" },
+      "outdoor_temp": {
+        "name": "Außentemperatur"
+      },
+      "flow_hk1": {
+        "name": "Vorlauf HK1"
+      },
+      "return_hk1": {
+        "name": "Rücklauf HK1"
+      },
+      "dhw_temp": {
+        "name": "Warmwasser Temperatur"
+      },
+      "buffer_top": {
+        "name": "Puffer Oben"
+      },
+      "buffer_bottom": {
+        "name": "Puffer Unten"
+      },
+      "circ_return_temp": {
+        "name": "Rücklauf Zirkulation"
+      },
+      "room_temp_hk1": {
+        "name": "Raumtemperatur HK1"
+      },
+      "room_temp_hk2": {
+        "name": "Raumtemperatur HK2"
+      },
+      "boiler_flow": {
+        "name": "Kessel Vorlauf"
+      },
+      "boiler_return": {
+        "name": "Kessel Rücklauf"
+      },
+      "boiler_hours": {
+        "name": "PELEO 14 Betriebsstunden"
+      },
+      "boiler_starts": {
+        "name": "PELEO 14 Kesselstarts"
+      },
+      "flow_hk2": {
+        "name": "Vorlauf HK2"
+      },
+      "return_hk2": {
+        "name": "Rücklauf HK2"
+      },
+      "collector_temp": {
+        "name": "Kollektortemperatur"
+      },
+      "solar_power": {
+        "name": "Solar Leistung"
+      },
+      "solar_day": {
+        "name": "Solar Tagesertrag"
+      },
+      "solar_total": {
+        "name": "Solar Gesamtertrag"
+      },
+      "pool_temp": {
+        "name": "Pool Temperatur"
+      },
+      "pool_flow": {
+        "name": "Pool Vorlauf"
+      },
+      "pool_return": {
+        "name": "Pool Rücklauf"
+      },
       "status_hk1": {
         "name": "Status Heizkreis 1",
         "state": {
-          "off": "Aus", "heating": "Heizbetrieb", "push": "Anschieben", "hold": "Vorhaltezeit", "blocked": "Gesperrt", "startup": "Inbetriebnahme", "frost": "Frostschutz", "screed": "Estrich", "cooling_excess": "Kühlung/Überschuss", "manual": "Manuell", "emergency": "Notbetrieb", "not_installed": "Nicht installiert", "cooling_active": "Kühlkreis aktiv"
+          "off": "Aus",
+          "heating": "Heizbetrieb",
+          "push": "Anschieben",
+          "hold": "Vorhaltezeit",
+          "blocked": "Gesperrt",
+          "startup": "Inbetriebnahme",
+          "frost": "Frostschutz",
+          "screed": "Estrich",
+          "cooling_excess": "Kühlung/Überschuss",
+          "manual": "Handbetrieb",
+          "emergency": "Notbetrieb",
+          "not_installed": "Nicht installiert",
+          "cooling_active": "Kühlkreis aktiv",
+          "outdoor_limit": "Außentemperaturgrenze",
+          "room_limit": "Raumtemperaturgrenze",
+          "buffer_block": "Puffer zu kalt",
+          "dhw_priority": "Warmwasservorrang",
+          "preheat": "Vorhaltezeit",
+          "normal": "Normal",
+          "comfort": "Komfort",
+          "reduced": "Absenken",
+          "station_dhw": "Wohnungsstation Warmwasser",
+          "wood_block": "Holzkesselsperre",
+          "stove_block": "Pelletsofensperre",
+          "outdoor_block": "Außentemperatursperre",
+          "combi_dhw": "Kombikessel Warmwasser",
+          "pump_block": "Umwälzpumpe aus",
+          "schedule_block": "Zeitprogrammsperre",
+          "solar_excess": "Solarüberschuss"
         }
       },
       "status_hk2": {
         "name": "Status Heizkreis 2",
         "state": {
-          "off": "Aus", "heating": "Heizbetrieb", "push": "Anschieben", "hold": "Vorhaltezeit", "blocked": "Gesperrt", "startup": "Inbetriebnahme", "frost": "Frostschutz", "screed": "Estrich", "cooling_excess": "Kühlung/Überschuss", "manual": "Manuell", "emergency": "Notbetrieb", "not_installed": "Nicht installiert", "cooling_active": "Kühlkreis aktiv"
+          "off": "Aus",
+          "heating": "Heizbetrieb",
+          "push": "Anschieben",
+          "hold": "Vorhaltezeit",
+          "blocked": "Gesperrt",
+          "startup": "Inbetriebnahme",
+          "frost": "Frostschutz",
+          "screed": "Estrich",
+          "cooling_excess": "Kühlung/Überschuss",
+          "manual": "Handbetrieb",
+          "emergency": "Notbetrieb",
+          "not_installed": "Nicht installiert",
+          "cooling_active": "Kühlkreis aktiv",
+          "outdoor_limit": "Außentemperaturgrenze",
+          "room_limit": "Raumtemperaturgrenze",
+          "buffer_block": "Puffer zu kalt",
+          "dhw_priority": "Warmwasservorrang",
+          "preheat": "Vorhaltezeit",
+          "normal": "Normal",
+          "comfort": "Komfort",
+          "reduced": "Absenken",
+          "station_dhw": "Wohnungsstation Warmwasser",
+          "wood_block": "Holzkesselsperre",
+          "stove_block": "Pelletsofensperre",
+          "outdoor_block": "Außentemperatursperre",
+          "combi_dhw": "Kombikessel Warmwasser",
+          "pump_block": "Umwälzpumpe aus",
+          "schedule_block": "Zeitprogrammsperre",
+          "solar_excess": "Solarüberschuss"
         }
       },
       "status_ww": {
         "name": "Status Warmwasser",
         "state": {
-          "no_demand": "Kein Bedarf", "loading": "Ladung läuft", "frost": "Frostschutz", "waiting": "Warten", "pump_runon": "Nachlauf Ladepumpe", "buffer_hot": "Puffer/Kessel zu warm", "wait_draw": "Warten auf Wasserentnahme", "draw_off": "Wasserentnahme", "startup": "Inbetriebnahme", "manual": "Manuell", "circ_active": "Betrieb Zirkulation", "circ_runon": "Nachlauf Zirkulation", "circ_lock": "Zirkulation Sperrzeit", "blocked_smarthome": "Sperre durch SmartHome"
+          "no_demand": "Kein Bedarf",
+          "loading": "Ladung läuft",
+          "frost": "Frostschutz",
+          "waiting": "Warten",
+          "pump_runon": "Nachlauf Ladepumpe",
+          "buffer_hot": "Puffer/Kessel zu warm",
+          "wait_draw": "Warten auf Wasserentnahme",
+          "draw_off": "Wasserentnahme",
+          "startup": "Inbetriebnahme",
+          "manual": "Manuell",
+          "circ_active": "Betrieb Zirkulation",
+          "circ_runon": "Nachlauf Zirkulation",
+          "circ_lock": "Zirkulation Sperrzeit",
+          "blocked_smarthome": "Sperre durch SmartHome"
         }
       },
       "status_circ": {
         "name": "Status Zirkulation",
         "state": {
-          "unused": "Nicht verwendet", "runon": "Nachlauf", "blocked": "Gesperrt", "off": "Aus", "blocked_sensor": "Gesperrt (Fühler)", "on": "An", "frost": "Frostschutz", "blocked_smarthome": "Sperre SmartHome"
+          "unused": "Nicht verwendet",
+          "runon": "Nachlauf",
+          "blocked": "Gesperrt",
+          "off": "Aus",
+          "blocked_sensor": "Gesperrt (Fühler)",
+          "on": "An",
+          "frost": "Frostschutz",
+          "blocked_smarthome": "Sperre SmartHome"
         }
       },
       "status_solar": {
         "name": "Status Solar",
         "state": {
-          "waiting": "Wartet", "frost": "Frostschutz", "push": "Anschieben", "delay": "Einschaltverzögerung", "loading": "Ladung läuft", "storage_full": "Speicher voll", "collector_overheat": "Kollektor überhitzt", "manual": "Manuell", "measuring": "Messung", "emergency": "Notbetrieb"
+          "waiting": "Wartet",
+          "frost": "Frostschutz",
+          "push": "Anschieben",
+          "delay": "Einschaltverzögerung",
+          "loading": "Ladung läuft",
+          "storage_full": "Speicher voll",
+          "collector_overheat": "Kollektor überhitzt",
+          "manual": "Manuell",
+          "measuring": "Messung",
+          "emergency": "Notbetrieb"
         }
       },
       "status_pool": {
         "name": "Status Pool",
         "state": {
-          "no_extension": "Keine Erweiterung", "off": "Aus", "blocked": "Gesperrt", "warm_enough": "Warm genug", "frost": "Frostschutz", "heating_normal": "Aufheizen Normal", "heating_comfort": "Aufheizen Komfort", "solar_excess": "Solarer Überschuss", "blocked_buffer_cold": "Gesperrt (Puffer kalt)", "blocked_ww_prio": "Gesperrt (WW Vorrang)", "cooling": "Kühlen"
+          "no_extension": "Keine Erweiterung",
+          "off": "Aus",
+          "blocked": "Gesperrt",
+          "warm_enough": "Warm genug",
+          "frost": "Frostschutz",
+          "heating_normal": "Aufheizen Normal",
+          "heating_comfort": "Aufheizen Komfort",
+          "solar_excess": "Solarüberschuss",
+          "blocked_buffer_cold": "Gesperrt (Puffer kalt)",
+          "blocked_ww_prio": "Gesperrt (WW Vorrang)",
+          "cooling": "Kühlen",
+          "outdoor_limit": "Außentemperaturgrenze",
+          "room_limit": "Raumtemperaturgrenze",
+          "buffer_block": "Puffer zu kalt",
+          "dhw_priority": "Warmwasservorrang",
+          "preheat": "Vorhaltezeit",
+          "normal": "Normal",
+          "comfort": "Komfort",
+          "reduced": "Absenken",
+          "station_dhw": "Wohnungsstation Warmwasser",
+          "wood_block": "Holzkesselsperre",
+          "stove_block": "Pelletsofensperre",
+          "outdoor_block": "Außentemperatursperre",
+          "combi_dhw": "Kombikessel Warmwasser",
+          "pump_block": "Umwälzpumpe aus",
+          "schedule_block": "Zeitprogrammsperre",
+          "manual": "Handbetrieb"
         }
       },
       "status_boiler": {
         "name": "PELEO 14 Kesselstatus",
         "state": {
-          "off": "Aus", "on": "An", "on_heating": "An für Heizkreis", "loading_buffer": "Lädt Puffer", "blocked": "Gesperrt", "cooling_hp": "Kühlung WP", "ww_prep": "WW Bereitung"
+          "off": "Aus",
+          "on": "An",
+          "on_heating": "An für Heizkreis",
+          "loading_buffer": "Lädt Puffer",
+          "blocked": "Gesperrt",
+          "cooling_hp": "Kühlung WP",
+          "ww_prep": "WW Bereitung",
+          "outdoor_limit": "Außentemperaturgrenze",
+          "room_limit": "Raumtemperaturgrenze",
+          "buffer_block": "Puffer zu kalt",
+          "dhw_priority": "Warmwasservorrang",
+          "preheat": "Vorhaltezeit",
+          "normal": "Normal",
+          "comfort": "Komfort",
+          "reduced": "Absenken",
+          "station_dhw": "Wohnungsstation Warmwasser",
+          "wood_block": "Holzkesselsperre",
+          "stove_block": "Pelletsofensperre",
+          "outdoor_block": "Außentemperatursperre",
+          "combi_dhw": "Kombikessel Warmwasser",
+          "pump_block": "Umwälzpumpe aus",
+          "schedule_block": "Zeitprogrammsperre",
+          "manual": "Handbetrieb",
+          "solar_excess": "Solarüberschuss"
         }
+      },
+      "external_flow_hk1": {
+        "name": "Externe Vorlauf-Sollwertvorgabe HK1"
+      },
+      "target_buffer_top": {
+        "name": "Solltemperatur Puffer oben"
+      },
+      "target_boiler": {
+        "name": "Kesselsolltemperatur"
+      }
+    }
+  },
+  "selector": {
+    "components": {
+      "options": {
+        "general": "Allgemein / Außentemperatur",
+        "boiler": "Kessel / Pelletheizung",
+        "buffer": "Pufferspeicher",
+        "hk1": "Heizkreis 1",
+        "hk2": "Heizkreis 2",
+        "dhw": "Warmwasser",
+        "circulation": "Zirkulation",
+        "solar": "Solarthermie",
+        "pool": "Schwimmbad",
+        "room": "Raumfühler"
+      }
+    },
+    "sensors": {
+      "options": {
+        "outdoor_temp": "Außentemperatur",
+        "flow_hk1": "Vorlauf HK1",
+        "return_hk1": "Rücklauf HK1",
+        "dhw_temp": "Warmwasser Temperatur",
+        "buffer_top": "Puffer Oben",
+        "buffer_bottom": "Puffer Unten",
+        "circ_return_temp": "Rücklauf Zirkulation",
+        "room_temp_hk1": "Raumtemperatur HK1",
+        "room_temp_hk2": "Raumtemperatur HK2",
+        "boiler_flow": "Kessel Vorlauf",
+        "boiler_return": "Kessel Rücklauf",
+        "boiler_hours": "PELEO 14 Betriebsstunden",
+        "boiler_starts": "PELEO 14 Kesselstarts",
+        "flow_hk2": "Vorlauf HK2",
+        "return_hk2": "Rücklauf HK2",
+        "collector_temp": "Kollektortemperatur",
+        "solar_power": "Solar Leistung",
+        "solar_day": "Solar Tagesertrag",
+        "solar_total": "Solar Gesamtertrag",
+        "pool_temp": "Pool Temperatur",
+        "pool_flow": "Pool Vorlauf",
+        "pool_return": "Pool Rücklauf",
+        "status_hk1": "Status Heizkreis 1",
+        "status_hk2": "Status Heizkreis 2",
+        "status_ww": "Status Warmwasser",
+        "status_circ": "Status Zirkulation",
+        "status_solar": "Status Solar",
+        "status_pool": "Status Pool",
+        "status_boiler": "PELEO 14 Kesselstatus",
+        "external_flow_hk1": "Externe Vorlauf-Sollwertvorgabe HK1",
+        "target_buffer_top": "Solltemperatur Puffer oben",
+        "target_boiler": "Kesselsolltemperatur"
+      }
+    },
+    "models": {
+      "options": {
+        "systacomfort_ii": "SystaComfort II (≥ 2.16)",
+        "compact_c": "Compact C (≥ 2.16)",
+        "legacy_unverified": "Bestandsprofil – Modell ungeprüft",
+        "systasmartc_ii": "SystaSmartC II – noch nicht unterstützt"
+      }
+    },
+    "controls": {
+      "options": {
+        "flow_hk1": "Externe Vorlaufvorgabe HK1",
+        "flow_hk2": "Externe Vorlaufvorgabe HK2",
+        "dhw_target": "Externe Warmwasservorgabe (Freigabe nötig)"
       }
     }
   }

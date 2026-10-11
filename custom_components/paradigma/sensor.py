@@ -1,5 +1,5 @@
 """Sensors for Paradigma."""
-from homeassistant.components.sensor import SensorEntity, SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import SensorEntity, SensorEntityDescription, SensorDeviceClass, SensorStateClass
 from homeassistant.const import UnitOfTemperature, UnitOfEnergy, UnitOfPower, UnitOfTime
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator, UpdateFailed
 from homeassistant.helpers.entity import DeviceInfo
@@ -73,47 +73,8 @@ STATUS_SOLAR = {
 }
 
 
-SENSOR_DEFINITIONS = [
+from .catalog import SENSOR_DEFINITIONS, REGISTERS, selected_sensors, allowed_addresses
 
-    
-    ("outdoor_temp", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 0, None),
-    ("flow_hk1", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 1, None),
-    ("return_hk1", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 2, None),
-    ("dhw_temp", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 3, None),
-    ("buffer_top", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 4, None),
-    ("buffer_bottom", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 5, None),
-    ("circ_return_temp", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 6, None),
-
-    ("room_temp_hk1", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 9, CONF_ROOM),
-    ("room_temp_hk2", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 10, CONF_ROOM),
-
-    ("flow_hk2", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 7, CONF_HK2),
-    ("return_hk2", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 8, CONF_HK2),
-
-    ("boiler_flow", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 12, CONF_BOILER),
-    ("boiler_return", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 13, CONF_BOILER),
-    ("boiler_hours", UnitOfTime.HOURS, SensorDeviceClass.DURATION, 1, "holding_32", 27, None),
-    ("boiler_starts", None, None, 1, "holding_32", 29, None),
-
-    
-
-    ("collector_temp", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 11, CONF_SOLAR),
-    ("solar_power", UnitOfPower.KILO_WATT, SensorDeviceClass.POWER, 0.1, "holding", 19, CONF_SOLAR), 
-    ("solar_day", UnitOfEnergy.KILO_WATT_HOUR, SensorDeviceClass.ENERGY, 0.1, "holding", 20, CONF_SOLAR),
-    ("solar_total", UnitOfEnergy.KILO_WATT_HOUR, SensorDeviceClass.ENERGY, 0.1, "holding_32", 21, CONF_SOLAR),
-
-    ("pool_temp", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 19, CONF_POOL),
-    ("pool_flow", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 20, CONF_POOL),
-    ("pool_return", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, 0.1, "input", 21, CONF_POOL),
-    
-    ("status_ww", None, None, 1, "holding_status_ww", 34, None),
-    ("status_circ", None, None, 1, "holding_status_circ", 35, None),
-    ("status_hk1", None, None, 1, "holding_status_hk", 36, None),
-    ("status_hk2", None, None, 1, "holding_status_hk", 37, CONF_HK2),
-    ("status_solar", None, None, 1, "holding_status_solar", 39, CONF_SOLAR),
-    ("status_pool", None, None, 1, "holding_status_pool", 40, CONF_POOL),
-    ("status_boiler", None, None, 1, "holding_status_boiler", 41, None),
-]
 
 async def async_setup_entry(hass, entry, async_add_entities):
     hub = hass.data[DOMAIN][entry.entry_id]
@@ -125,8 +86,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     
     entities = []
     for s in SENSOR_DEFINITIONS:
-        req_conf = s[6]
-        if req_conf and not entry.data.get(req_conf):
+        if s[0] not in selected_sensors(entry.data):
             continue
         entities.append(ParadigmaSensor(coordinator, entry, s))
     async_add_entities(entities)
@@ -144,12 +104,17 @@ class ParadigmaDataCoordinator(DataUpdateCoordinator):
         self._read_plan = {}
         for definition in SENSOR_DEFINITIONS:
             _, _, _, _, register_type, address, required = definition
-            if required and not config.get(required):
+            if definition[0] not in selected_sensors(config):
                 continue
             kind = "input" if register_type == "input" else (
                 "holding_32" if register_type == "holding_32" else "holding"
             )
             self._read_plan[(kind, address)] = 2 if kind == "holding_32" else 1
+
+        for address in allowed_addresses(config):
+            self._read_plan[("holding", address)] = 1
+        if 8 in allowed_addresses(config):
+            self._read_plan[("input", 3)] = 1
 
     async def _async_update_data(self):
         # All synchronous reads run outside the event loop, in one executor job.
@@ -168,7 +133,7 @@ class ParadigmaDataCoordinator(DataUpdateCoordinator):
             # A sentinel is invalid measurement data, but a valid transport response.
             responses += 1
             data[f"{kind}_{address}"] = decode_uint32(values) if count == 2 else values[0]
-        if not responses:
+        if self._read_plan and not responses:
             raise UpdateFailed("No valid Modbus responses from the configured sensor registers")
         return data
 
@@ -182,6 +147,10 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         self._type = definition[4]
         self._reg_idx = definition[5]
         self._entry_id = entry.entry_id
+        self.entity_description = SensorEntityDescription(
+            key=self._key, translation_key=self._key,
+            native_unit_of_measurement=self._unit, device_class=self._dev_class,
+        )
         
         self._attr_has_entity_name = True
         self._attr_translation_key = self._key
@@ -196,7 +165,7 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def device_info(self):
-        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
+        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)})
 
     @property
     def available(self):
@@ -205,7 +174,7 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         kind = "input" if self._type == "input" else (
             "holding_32" if self._type == "holding_32" else "holding"
         )
-        return f"{kind}_{self._reg_idx}" in self.coordinator.data
+        return self.native_value is not None
 
     @property
     def native_value(self):
@@ -225,6 +194,15 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
             return None
 
 
+        if getattr(self.coordinator, "config", {}).get("model") in ("systacomfort_ii", "compact_c"):
+            tables = {
+                "holding_status_hk": {0: "off", 1: "outdoor_limit", 2: "room_limit", 3: "buffer_block", 4: "dhw_priority", 6: "frost", 7: "solar_excess", 8: "preheat", 9: "normal", 10: "comfort", 11: "reduced", 16: "station_dhw", 17: "screed"},
+                "holding_status_boiler": {0: "off", 1: "manual", 2: "ww_prep", 3: "on_heating", 4: "wood_block", 5: "stove_block", 6: "outdoor_block", 7: "cooling_hp", 8: "combi_dhw"},
+                "holding_status_pool": {0: "pump_block", 3: "buffer_block", 4: "dhw_priority", 7: "solar_excess", 12: "warm_enough", 13: "schedule_block", 14: "normal", 15: "comfort"},
+            }
+            if self._type in tables:
+                return tables[self._type].get(raw, str(raw))
+
         if "status_hk" in self._type: return STATUS_HK.get(raw, str(raw))
         if "status_ww" in self._type: return STATUS_WW.get(raw, str(raw))
         if "status_circ" in self._type: return STATUS_CIRC.get(raw, str(raw))
@@ -235,7 +213,11 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
         if self._unit == UnitOfTemperature.CELSIUS:
              if raw > 32767: raw -= 65536
         
-        return raw * self._factor
+        return round(raw * self._factor, 1) if self._unit == UnitOfTemperature.CELSIUS else raw * self._factor
+
+    @property
+    def extra_state_attributes(self):
+        return {"component": REGISTERS[self._key].component, "register_key": self._key}
 
     @property
     def native_unit_of_measurement(self):
@@ -243,6 +225,19 @@ class ParadigmaSensor(CoordinatorEntity, SensorEntity):
             return None
         return self._unit
     
+    @property
+    def options(self):
+        if self._unit is not None or "status" not in self._type:
+            return None
+        table = {"holding_status_hk": STATUS_HK, "holding_status_ww": STATUS_WW,
+                 "holding_status_circ": STATUS_CIRC, "holding_status_solar": STATUS_SOLAR,
+                 "holding_status_boiler": STATUS_BOILER, "holding_status_pool": STATUS_POOL}.get(self._type, {})
+        # Include the actual value so unknown/new firmware codes remain visible.
+        values = set(table.values())
+        if self.native_value is not None:
+            values.add(self.native_value)
+        return sorted(values)
+
     @property
     def device_class(self):
         if self._dev_class:

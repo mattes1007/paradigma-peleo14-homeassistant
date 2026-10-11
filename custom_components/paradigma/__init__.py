@@ -10,6 +10,7 @@ from homeassistant.helpers import device_registry as dr
 from .configuration import validate_config, control_allowed
 from .const import DOMAIN, CONF_SLAVE_ID, PLATFORMS
 from .hub import ParadigmaHub
+from .catalog import migrate_data, allowed_addresses
 from .sensor import ParadigmaDataCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                       entry.data[CONF_PORT], entry.data[CONF_SLAVE_ID],
                       allow_control=control_allowed(entry.data),
                       permission_check=lambda: control_allowed(entry.data))
+    hub.address_permission = lambda address: address in allowed_addresses(entry.data)
     hub.platforms = list(PLATFORMS) if hub.control_enabled else [Platform.SENSOR]
     coordinator = ParadigmaDataCoordinator(hass, hub, entry.data, entry)
     hub.coordinator = coordinator
@@ -46,7 +48,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.data[CONF_NAME],
             manufacturer="Paradigma",
-            model="SystaSmartC II",
+            model=entry.data.get("model", "legacy_unverified"),
             sw_version="Modbus V1.1",
             configuration_url=f"http://{entry.data[CONF_HOST]}",
         )
@@ -88,3 +90,15 @@ async def update_listener(hass: HomeAssistant, entry: ConfigEntry):
     if hub is not None:
         hub.revoke_control()
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_migrate_entry(hass, entry):
+    """Preserve v1 selection and explicit grants without touching registries."""
+    if entry.version > 2:
+        return False
+    if entry.version == 1:
+        data = migrate_data(entry.data)
+        # v1 applied options to data and also stored an options mirror. Keep
+        # both, without letting a stale mirror override effective data/grants.
+        hass.config_entries.async_update_entry(entry, data=data, version=2)
+    return True

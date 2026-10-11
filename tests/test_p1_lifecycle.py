@@ -64,6 +64,7 @@ def load_setup_functions():
         Platform=SimpleNamespace(SENSOR='sensor'),
         ParadigmaHub=Hub, ParadigmaDataCoordinator=SENSOR.ParadigmaDataCoordinator,
         dr=SimpleNamespace(async_get=lambda hass: SimpleNamespace(async_get_or_create=lambda **kw: None)),
+        allowed_addresses=FLOW['allowed_addresses'], migrate_data=FLOW['migrate_data'],
         _LOGGER=logging.getLogger('test_setup'),
     )
     functions = ast.Module(body=[n for n in tree.body if isinstance(n, ast.AsyncFunctionDef)], type_ignores=[])

@@ -1,52 +1,47 @@
-# Paradigma PELEO 14 für Home Assistant
+# Paradigma PELEO 14 – modularer Anlagenbaukasten
 
-Eigene Integration für die **Paradigma PELEO 14 mit SystaComfort-Regelung** über lokales Modbus TCP. Maintainer: [mattes1007](https://github.com/mattes1007). Installation als benutzerdefiniertes HACS-Repository; dieser Fork ist kein Eintrag im HACS-Standardkatalog.
+Home-Assistant-Custom-Integration für Paradigma-Heizungsanlagen über eine gemeinsame Modbus-TCP-Verbindung. Weiterentwicklung des funktionierenden PELEO-14-Forks, Domain **`paradigma`**, Maintainer [mattes1007](https://github.com/mattes1007).
 
-![Paradigma Logo](logo.png)
+Manifest-Version **2.0.0-beta.1** bleibt bis zur Veröffentlichung unverändert. Für diesen modularen Entwicklungsstand wird **2.0.0-beta.2** empfohlen. Ziel: Home Assistant Core **2026.10.0**, HAOS 18.3, bestehende Abhängigkeit `pymodbus>=3.13.1`. Keine neue Abhängigkeit. Echte HA-Python-Tests auf Core 2026.10.0/2026.10.1 bestanden; HAOS-/Hardwareprüfung steht aus.
 
-## Stand und Voraussetzungen
+## Installation und Konfiguration
 
-Version **2.0.0-beta.1**, Domain **`paradigma`**. Zielversion: Home Assistant Core **2026.10.0**, mit `pymodbus>=3.13.1`. Frühere Core-Versionen sind nicht freigegeben. HAOS 18.3 ist die vorgesehene Umgebung. Die lokalen Tests verwenden Framework-Stubs und Fake-Modbus-Clients; ein echter HAOS-Laufzeittest steht noch aus.
+HACS → benutzerdefinierte Repositories → **`https://github.com/mattes1007/paradigma-peleo14-homeassistant`** → Kategorie **Integration**. Release installieren, HA neu starten und **Paradigma PELEO 14** hinzufügen. Einzelheiten: [HACS und Veröffentlichung](docs/hacs-installation.md).
 
-**Standardmäßig arbeitet die Integration ausschließlich lesend.** Die Option „Heizungssteuerung über Home Assistant erlauben“ ist deaktiviert, auch bei bestehenden Einträgen ohne diese Option. Eine zentrale Hub-Sperre verhindert Schreibzugriffe. Details zum ersten Test und zur Freigabe: [Nur-Lesen-Modus](docs/lesebetrieb.md).
+Der offizielle HA-Assistent führt durch Verbindung/Reglermodell, Baugruppen, individuelle Sensorwahl pro Baugruppe, getrennte Steuerfreigaben und Zusammenfassung. Später dieselbe Auswahl über **Konfigurieren** ändern. Kein Dashboard-Installer, keine Lovelace-Änderungen.
 
-## Sensoren und Kommunikation
+Auswählbar: Allgemein/Außentemperatur, Kessel/Pelletheizung, Pufferspeicher, Heizkreis 1/2, Warmwasser, Zirkulation, Solarthermie, Schwimmbad und Raumfühler. Optional abgewählte Register werden nicht regelmäßig gelesen. Die bisherigen Entity- und Unique-IDs bleiben erhalten.
 
-Die drei PELEO-Kesselsensoren sind unabhängig von optionalen Komponenten immer vorhanden:
+Verifiziertes Dokumentprofil: **SystaComfort II / Compact C ab Firmware 2.16**, TH-3000 V1.1. **SystaSmartC II ist noch nicht verifiziert und nicht für neue Einrichtungen freigegeben.** Bestehende Installationen behalten das bisherige Registerprofil als ungeprüftes Bestandsprofil. Es gibt keine automatische Erkennung von Modell/Firmware oder angeschlossener Hardware.
 
-| Sensor | Holding-Register | Format |
-| --- | --- | --- |
-| Betriebsstunden | 27–28 | uint32, High Word zuerst |
-| Kesselstarts | 29–30 | uint32, High Word zuerst |
-| Kesselstatus | 41 | uint16, bestehende Statustabelle |
+- [Konfiguration und Modelle](docs/KONFIGURATION.md)
+- [Vollständiger implementierter Registerkatalog](docs/REGISTERKATALOG.md)
+- [Steuerfunktionen und Voraussetzungen](docs/STEUERFUNKTIONEN.md)
+- [Migration, Updateprüfung und Rollback](docs/MIGRATION.md)
 
-Ungültige Zählerwerte `4294967295` werden verworfen. Wortreihenfolge und Kesselstatus-Tabelle müssen noch anhand echter Registerwerte oder Herstellerunterlagen bestätigt werden. Es gibt keinen separaten Wodtke-Pelletsofen oder Holzkessel in diesem Profil.
+## Lesemodus und Sollwerte
 
-Weitere Sensoren betreffen Heizkreis 1, Warmwasser, Puffer und Zirkulation. Solar, Heizkreis 2, Pool, Raumfühler sowie Kesseltemperaturfühler sind optional; ihre bisherigen Zuordnungen sind noch nicht unabhängig für diese Anlage bestätigt. Die Option für Kesseltemperaturfühler beeinflusst die drei Kesselsensoren nicht.
+Standard ist ausschließlich Lesen. Neu optional: **Holding 2** externe Vorlauf-Sollwertvorgabe HK1, **Holding 44** Solltemperatur Puffer oben, **Holding 45** Kesselsolltemperatur. Faktor 0,1 °C, gemeinsame Coordinator-Aktualisierung, keine Schreibfreigabe notwendig. Holding 2 wird ausdrücklich nicht als intern berechneter Regler-Sollwert bezeichnet. Sentinel-Werte und fehlende Antworten werden unbekannt/nicht verfügbar.
 
-Das konfigurierte Sensor-Abfrageintervall beträgt 10–3600 Sekunden, standardmäßig 30 Sekunden. Alte gespeicherte Werte unter zehn Sekunden werden zur Laufzeit mit Warnung auf 30 Sekunden zurückgesetzt, ohne den gespeicherten Eintrag zu verändern. Bei vollständigem Ausfall werden Sensoren `unavailable`; erfolgreiche spätere Abfragen stellen die Daten automatisch wieder her. Details: [Register und Identitäten](docs/peleo14-register.md), [Kommunikation und Lebenszyklus](docs/p1-kommunikation.md).
+Einzeln freigebbar: externe HK1-/HK2-Vorlaufvorgaben und Warmwasservorgabe. Vorhandene Hub-Schutzprüfungen, Grenzen, Live-Voraussetzungen und Rücklesen bleiben erhalten. Coil-Schalter, Schreiben auf 44/45 und dauerhafte Sollwerterneuerung bleiben gesperrt. Vorgaben können die interne Regelung für etwa fünf Minuten übersteuern. Keine Befehle beim Einrichten, Reload oder normalen Lesen.
 
-Bei bewusst aktivierter Steuerfreigabe werden nur die belegten Heizkreis-Sollwerte und der Warmwasser-Sollwert angeboten. Sie prüfen Wertebereiche, Schreibantworten und Rücklesewerte. Puffer-/Kessel-Sollwertregler sowie Warmwasser-/Zirkulationsschalter bleiben gesperrt. Die geprüfte Herstellerunterlage bezeichnet Holding 44/45 als nur lesbar; Coil-Overrides benötigen eine gesonderte Freigabe ihrer Befehlssequenz. [P3-Schreibprüfung und Grenzen](docs/p3-steuerung.md).
+## Migration und Prüfung
 
-## Installation und Aktualisierung
+Entry-Version 1 wird auf 2 migriert: bisherige Sensoren, Einstellungen, Gerätekennung und bewusst freigegebene Steuerfunktionen bleiben erhalten. Neue Funktionen werden nicht automatisch aktiviert. **Vor Update vollständiges HA-Backup erstellen**; ein Rollback benötigt auch den alten Config Entry aus dem Backup.
 
-[HACS-Anleitung mit Backup, Wechsel von der Originalintegration und Rollback](docs/hacs-installation.md).
-
-Repository: **`https://github.com/mattes1007/paradigma-peleo14-homeassistant`**, HACS-Kategorie **Integration**. Die Dateien liegen unter `custom_components/paradigma/`. HACS lädt direkt aus dem Repository; ein ZIP-Release ist nicht erforderlich. Diese lokalen Änderungen werden erst nach gesondert freigegebener Veröffentlichung über GitHub verfügbar.
-
-Bei einer neuen Einrichtung unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** nach **Paradigma PELEO 14** suchen. Verbindungsdaten für die vorgesehene Anlage: Host `192.168.1.42`, Port `502`, Slave-ID `1`. **Die Einrichtung prüft die Verbindung**, deshalb vor dem ersten Test die Hinweise zum Nur-Lesen-Modus prüfen. Die Steuerfreigabe dabei deaktiviert lassen. Nur tatsächlich installierte Zusatzkomponenten auswählen. Der bestehende Name und Integrationseintrag sollen bei einem Upgrade erhalten bleiben, damit die Entity-Identitäten erhalten bleiben.
-
-## Entwicklung
-
-Alle lokalen Tests ohne zusätzliche Pakete und ohne echte Netzwerkzugriffe:
+Offlineprüfung:
 
 ```sh
-python3 -B -m unittest discover -s tests -v
-git diff --check
+python3 -m unittest discover -s tests
+python3 -m compileall -q custom_components
 ```
 
-GitHub-Workflows prüfen zusätzlich HACS und Hassfest sowie die Offline-Tests unter Python 3.12 und 3.14. Die externen Validatoren sind nicht Teil des lokalen Testlaufs. [Verpackung und Versionsstrategie](docs/hacs-installation.md#verpackung-und-version).
+113 lokale Mock-/Stub-Tests sowie sieben echte HA-Python-Tests jeweils auf Core 2026.10.0 und 2026.10.1 bestanden; keine Verbindung zur Heizung. Offizielles Hassfest und die offiziellen HACS-JSON-Schemas bestanden. Die vollständige HACS-GitHub-Action und Browser-/HAOS-/Hardwareprüfung bleiben offen. [Abschließender QA-Bericht](docs/QA-BERICHT.md). Lizenz, `hacs.json`, Manifest und `custom_components/paradigma/` sind vorhanden. Keine GitHub-Veröffentlichung wurde vorgenommen.
 
-## Herkunft
+## Changelog – unveröffentlicht, empfohlen 2.0.0-beta.2
 
-Fork von [nussfuellung/paradigma-homeassistant](https://github.com/nussfuellung/paradigma-homeassistant). Lizenz: [GPL-3.0](LICENSE). Dies ist ein privates Projekt und kein offizielles Produkt von Paradigma.
+Zentraler Registerkatalog; Komponenten-/Sensor-/Steuerassistent mit deutschen und englischen Labels; drei neue optionale Sollwertsensoren; rückwärtskompatible Entry-Migration; ein gemeinsamer zyklischer Leseplan auch für Steuerentitäten; Modellgrenzen und TH-3000-Statusauswertung berichtigt. Dashboard-Baukasten, zusätzliche Heizkreise/Holzkessel/Pelletsofen und sichere Coil-Sequenzen bleiben spätere Arbeiten.
+
+Historische technische Berichte: [P1-Kommunikation](docs/p1-kommunikation.md), [P3-Sicherheitsmodell](docs/p3-steuerung.md), [PELEO-Zähler](docs/peleo14-register.md). Die neuen Anleitungen ersetzen dort beschriebene globale Optionsfreigaben und unabhängige Plattform-Poller.
+
+Fork von [nussfuellung/paradigma-homeassistant](https://github.com/nussfuellung/paradigma-homeassistant). [GPL-3.0](LICENSE). Privates Projekt, kein offizielles Paradigma-Produkt.

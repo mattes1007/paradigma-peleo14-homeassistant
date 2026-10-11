@@ -2,23 +2,41 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect Paradigma Heating",
+        "title": "Connection",
+        "description": "SystaSmartC II is not verified. Existing entries retain their legacy read profile.",
         "data": {
           "name": "Name",
-          "host": "IP Address",
+          "host": "Hostname / IP",
           "port": "Port",
-          "slave_id": "Slave ID / Unit ID",
-          "solar_installed": "Solar System Installed",
-          "hk2_installed": "Heating Circuit 2 Installed",
-          "pool_installed": "Pool System Installed",
-          "room_sensor_installed": "Room Sensors Installed",
-          "boiler_installed": "Boiler temperature sensors installed (PELEO 14)",
-          "scan_interval": "Update Interval (Seconds)",
-          "allow_control": "Allow heating control through Home Assistant"
-        },
-        "data_description": {
-          "allow_control": "Read-only by default. Permission applies only to verified setpoints. Buffer/boiler targets and coil switches remain blocked. Requires SystaComfort II V2.16 or later, matching manufacturer documentation and safe controller settings. Changes are not automatically renewed."
+          "slave_id": "Modbus Unit ID",
+          "model": "Controller model (confirm firmware)",
+          "scan_interval": "Polling interval (seconds)"
         }
+      },
+      "components": {
+        "title": "Select components",
+        "data": {
+          "components": "Installed components"
+        }
+      },
+      "sensors": {
+        "title": "Select sensors",
+        "description": "{component}: Select sensors for this component. Room readings require a room sensor.",
+        "data": {
+          "sensors": "Read sensors"
+        }
+      },
+      "controls": {
+        "title": "Optional controls",
+        "description": "Confirm SystaComfort II / Compact C firmware 2.16+ and TH-3000. HC flow limits are checked; DHW requires an existing release override. Commands expire after about five minutes, without renewal. Verify safe controller fallback settings. Unverified legacy grants can only be retained.",
+        "data": {
+          "controls": "Individually permitted functions",
+          "confirm_control": "Model, prerequisites and fallback verified"
+        }
+      },
+      "summary": {
+        "title": "Apply selection",
+        "description": "Components: {components}\nRead sensors: {sensor_count}\nControls: {controls}\nMissing registers remain unknown. Reading grants no write permission."
       }
     },
     "error": {
@@ -27,7 +45,9 @@
       "invalid_port": "Port must be an integer between 1 and 65535.",
       "invalid_slave_id": "Device ID must be an integer between 1 and 255.",
       "invalid_scan_interval": "Scan interval must be an integer between 10 and 3600 seconds.",
-      "invalid_allow_control": "Control permission must be a boolean value."
+      "invalid_allow_control": "Control permission must be a boolean value.",
+      "invalid_selection": "Invalid selection",
+      "confirm_control": "Explicitly confirm the prerequisites."
     }
   },
   "options": {
@@ -36,107 +56,395 @@
       "invalid_port": "Port must be an integer between 1 and 65535.",
       "invalid_slave_id": "Device ID must be an integer between 1 and 255.",
       "invalid_scan_interval": "Scan interval must be an integer between 10 and 3600 seconds.",
-      "invalid_allow_control": "Control permission must be a boolean value."
+      "invalid_allow_control": "Control permission must be a boolean value.",
+      "invalid_selection": "Invalid selection",
+      "confirm_control": "Explicitly confirm the prerequisites."
     },
     "step": {
       "init": {
-        "title": "Paradigma Options",
+        "title": "Connection",
+        "description": "SystaSmartC II is not verified. Existing entries retain their legacy read profile.",
         "data": {
-          "host": "IP Address",
+          "host": "Hostname / IP",
           "port": "Port",
-          "slave_id": "Slave ID",
-          "solar_installed": "Solar System Installed",
-          "hk2_installed": "Heating Circuit 2 Installed",
-          "pool_installed": "Pool System Installed",
-          "room_sensor_installed": "Room Sensors Installed",
-          "boiler_installed": "Boiler temperature sensors installed (PELEO 14)",
-          "scan_interval": "Update Interval (Seconds)",
-          "allow_control": "Allow heating control through Home Assistant"
-        },
-        "data_description": {
-          "allow_control": "Read-only by default. Permission applies only to verified setpoints. Buffer/boiler targets and coil switches remain blocked. Requires SystaComfort II V2.16 or later, matching manufacturer documentation and safe controller settings. Changes are not automatically renewed."
+          "slave_id": "Modbus Unit ID",
+          "model": "Controller model (confirm firmware)",
+          "scan_interval": "Polling interval (seconds)"
         }
+      },
+      "components": {
+        "title": "Select components",
+        "data": {
+          "components": "Installed components"
+        }
+      },
+      "sensors": {
+        "title": "Select sensors",
+        "description": "{component}: Select sensors for this component. Room readings require a room sensor.",
+        "data": {
+          "sensors": "Read sensors"
+        }
+      },
+      "controls": {
+        "title": "Optional controls",
+        "description": "Confirm SystaComfort II / Compact C firmware 2.16+ and TH-3000. HC flow limits are checked; DHW requires an existing release override. Commands expire after about five minutes, without renewal. Verify safe controller fallback settings. Unverified legacy grants can only be retained.",
+        "data": {
+          "controls": "Individually permitted functions",
+          "confirm_control": "Model, prerequisites and fallback verified"
+        }
+      },
+      "summary": {
+        "title": "Apply selection",
+        "description": "Components: {components}\nRead sensors: {sensor_count}\nControls: {controls}\nMissing registers remain unknown. Reading grants no write permission."
       }
     }
   },
   "entity": {
     "number": {
-      "setpoint_flow_hk1": { "name": "Setpoint Flow HK1" },
-      "setpoint_flow_hk2": { "name": "Setpoint Flow HK2" },
-      "setpoint_buffer_top": { "name": "Setpoint Buffer Top" },
-      "setpoint_boiler": { "name": "Setpoint Boiler" }
+      "setpoint_flow_hk1": {
+        "name": "Setpoint Flow HK1"
+      },
+      "setpoint_flow_hk2": {
+        "name": "Setpoint Flow HK2"
+      },
+      "setpoint_buffer_top": {
+        "name": "Setpoint Buffer Top"
+      },
+      "setpoint_boiler": {
+        "name": "Setpoint Boiler"
+      }
     },
     "switch": {
-      "dhw_enable": { "name": "DHW Enable" },
-      "circ_enable": { "name": "Circulation Enable" }
+      "dhw_enable": {
+        "name": "DHW Enable"
+      },
+      "circ_enable": {
+        "name": "Circulation Enable"
+      }
     },
     "water_heater": {
-      "dhw": { "name": "DHW Setpoint" }
+      "dhw": {
+        "name": "DHW Setpoint"
+      }
     },
     "sensor": {
-      "outdoor_temp": { "name": "Outdoor Temperature" },
-      "flow_hk1": { "name": "Flow HK1" },
-      "return_hk1": { "name": "Return HK1" },
-      "dhw_temp": { "name": "DHW Temperature" },
-      "buffer_top": { "name": "Buffer Top" },
-      "buffer_bottom": { "name": "Buffer Bottom" },
-      "circ_return_temp": { "name": "Circulation Return" },
-      "room_temp_hk1": { "name": "Room Temp HK1" },
-      "room_temp_hk2": { "name": "Room Temp HK2" },
-      "boiler_flow": { "name": "Boiler Flow" },
-      "boiler_return": { "name": "Boiler Return" },
-      "boiler_hours": { "name": "PELEO 14 operating hours" },
-      "boiler_starts": { "name": "PELEO 14 boiler starts" },
-      "flow_hk2": { "name": "Flow HK2" },
-      "return_hk2": { "name": "Return HK2" },
-      "collector_temp": { "name": "Collector Temperature" },
-      "solar_power": { "name": "Solar Power" },
-      "solar_day": { "name": "Solar Yield Day" },
-      "solar_total": { "name": "Solar Yield Total" },
-      "pool_temp": { "name": "Pool Temperature" },
-      "pool_flow": { "name": "Pool Flow" },
-      "pool_return": { "name": "Pool Return" },
+      "outdoor_temp": {
+        "name": "Outdoor Temperature"
+      },
+      "flow_hk1": {
+        "name": "Flow HK1"
+      },
+      "return_hk1": {
+        "name": "Return HK1"
+      },
+      "dhw_temp": {
+        "name": "DHW Temperature"
+      },
+      "buffer_top": {
+        "name": "Buffer Top"
+      },
+      "buffer_bottom": {
+        "name": "Buffer Bottom"
+      },
+      "circ_return_temp": {
+        "name": "Circulation Return"
+      },
+      "room_temp_hk1": {
+        "name": "Room Temp HK1"
+      },
+      "room_temp_hk2": {
+        "name": "Room Temp HK2"
+      },
+      "boiler_flow": {
+        "name": "Boiler Flow"
+      },
+      "boiler_return": {
+        "name": "Boiler Return"
+      },
+      "boiler_hours": {
+        "name": "PELEO 14 operating hours"
+      },
+      "boiler_starts": {
+        "name": "PELEO 14 boiler starts"
+      },
+      "flow_hk2": {
+        "name": "Flow HK2"
+      },
+      "return_hk2": {
+        "name": "Return HK2"
+      },
+      "collector_temp": {
+        "name": "Collector Temperature"
+      },
+      "solar_power": {
+        "name": "Solar Power"
+      },
+      "solar_day": {
+        "name": "Solar Yield Day"
+      },
+      "solar_total": {
+        "name": "Solar Yield Total"
+      },
+      "pool_temp": {
+        "name": "Pool Temperature"
+      },
+      "pool_flow": {
+        "name": "Pool Flow"
+      },
+      "pool_return": {
+        "name": "Pool Return"
+      },
       "status_hk1": {
         "name": "Status HK1",
         "state": {
-          "off": "Off", "heating": "Heating", "push": "Pushing", "hold": "Hold Time", "blocked": "Blocked", "startup": "Startup", "frost": "Frost Protection", "screed": "Screed Drying", "cooling_excess": "Cooling/Excess", "manual": "Manual", "emergency": "Emergency", "not_installed": "Not Installed", "cooling_active": "Cooling Active"
+          "off": "Off",
+          "heating": "Heating",
+          "push": "Pushing",
+          "hold": "Hold Time",
+          "blocked": "Blocked",
+          "startup": "Startup",
+          "frost": "Frost Protection",
+          "screed": "Screed Drying",
+          "cooling_excess": "Cooling/Excess",
+          "manual": "Manual",
+          "emergency": "Emergency",
+          "not_installed": "Not Installed",
+          "cooling_active": "Cooling Active",
+          "outdoor_limit": "Outdoor temperature limit",
+          "room_limit": "Room temperature limit",
+          "buffer_block": "Buffer too cold",
+          "dhw_priority": "DHW priority",
+          "preheat": "Preheat",
+          "normal": "Normal",
+          "comfort": "Comfort",
+          "reduced": "Reduced",
+          "station_dhw": "Station DHW",
+          "wood_block": "Wood boiler block",
+          "stove_block": "Pellet stove block",
+          "outdoor_block": "Outdoor temperature block",
+          "combi_dhw": "Combi boiler DHW",
+          "pump_block": "Circulation pump off",
+          "schedule_block": "Schedule block",
+          "solar_excess": "Solar excess"
         }
       },
       "status_hk2": {
         "name": "Status HK2",
         "state": {
-          "off": "Off", "heating": "Heating", "push": "Pushing", "hold": "Hold Time", "blocked": "Blocked", "startup": "Startup", "frost": "Frost Protection", "screed": "Screed Drying", "cooling_excess": "Cooling/Excess", "manual": "Manual", "emergency": "Emergency", "not_installed": "Not Installed", "cooling_active": "Cooling Active"
+          "off": "Off",
+          "heating": "Heating",
+          "push": "Pushing",
+          "hold": "Hold Time",
+          "blocked": "Blocked",
+          "startup": "Startup",
+          "frost": "Frost Protection",
+          "screed": "Screed Drying",
+          "cooling_excess": "Cooling/Excess",
+          "manual": "Manual",
+          "emergency": "Emergency",
+          "not_installed": "Not Installed",
+          "cooling_active": "Cooling Active",
+          "outdoor_limit": "Outdoor temperature limit",
+          "room_limit": "Room temperature limit",
+          "buffer_block": "Buffer too cold",
+          "dhw_priority": "DHW priority",
+          "preheat": "Preheat",
+          "normal": "Normal",
+          "comfort": "Comfort",
+          "reduced": "Reduced",
+          "station_dhw": "Station DHW",
+          "wood_block": "Wood boiler block",
+          "stove_block": "Pellet stove block",
+          "outdoor_block": "Outdoor temperature block",
+          "combi_dhw": "Combi boiler DHW",
+          "pump_block": "Circulation pump off",
+          "schedule_block": "Schedule block",
+          "solar_excess": "Solar excess"
         }
       },
       "status_ww": {
         "name": "Status DHW",
         "state": {
-          "no_demand": "No Demand", "loading": "Loading", "frost": "Frost Protection", "waiting": "Waiting", "pump_runon": "Pump Run-on", "buffer_hot": "Buffer/Boiler too hot", "wait_draw": "Wait for Draw-off", "draw_off": "Draw-off", "startup": "Startup", "manual": "Manual", "circ_active": "Circulation Active", "circ_runon": "Circulation Run-on", "circ_lock": "Circulation Locked", "blocked_smarthome": "Blocked by SmartHome"
+          "no_demand": "No Demand",
+          "loading": "Loading",
+          "frost": "Frost Protection",
+          "waiting": "Waiting",
+          "pump_runon": "Pump Run-on",
+          "buffer_hot": "Buffer/Boiler too hot",
+          "wait_draw": "Wait for Draw-off",
+          "draw_off": "Draw-off",
+          "startup": "Startup",
+          "manual": "Manual",
+          "circ_active": "Circulation Active",
+          "circ_runon": "Circulation Run-on",
+          "circ_lock": "Circulation Locked",
+          "blocked_smarthome": "Blocked by SmartHome"
         }
       },
       "status_circ": {
         "name": "Status Circulation",
         "state": {
-          "unused": "Not Used", "runon": "Run-on", "blocked": "Blocked", "off": "Off", "blocked_sensor": "Blocked (Sensor)", "on": "On", "frost": "Frost Protection", "blocked_smarthome": "Blocked by SmartHome"
+          "unused": "Not Used",
+          "runon": "Run-on",
+          "blocked": "Blocked",
+          "off": "Off",
+          "blocked_sensor": "Blocked (Sensor)",
+          "on": "On",
+          "frost": "Frost Protection",
+          "blocked_smarthome": "Blocked by SmartHome"
         }
       },
       "status_solar": {
         "name": "Status Solar",
         "state": {
-          "waiting": "Waiting", "frost": "Frost Protection", "push": "Pushing", "delay": "Start Delay", "loading": "Loading", "storage_full": "Storage Full", "collector_overheat": "Collector Overheat", "manual": "Manual", "measuring": "Measuring", "emergency": "Emergency"
+          "waiting": "Waiting",
+          "frost": "Frost Protection",
+          "push": "Pushing",
+          "delay": "Start Delay",
+          "loading": "Loading",
+          "storage_full": "Storage Full",
+          "collector_overheat": "Collector Overheat",
+          "manual": "Manual",
+          "measuring": "Measuring",
+          "emergency": "Emergency"
         }
       },
       "status_pool": {
         "name": "Status Pool",
         "state": {
-          "no_extension": "No Extension", "off": "Off", "blocked": "Blocked", "warm_enough": "Warm Enough", "frost": "Frost Protection", "heating_normal": "Heating (Normal)", "heating_comfort": "Heating (Comfort)", "solar_excess": "Solar Excess", "blocked_buffer_cold": "Blocked (Buffer cold)", "blocked_ww_prio": "Blocked (DHW Priority)", "cooling": "Cooling"
+          "no_extension": "No Extension",
+          "off": "Off",
+          "blocked": "Blocked",
+          "warm_enough": "Warm Enough",
+          "frost": "Frost Protection",
+          "heating_normal": "Heating (Normal)",
+          "heating_comfort": "Heating (Comfort)",
+          "solar_excess": "Solar excess",
+          "blocked_buffer_cold": "Blocked (Buffer cold)",
+          "blocked_ww_prio": "Blocked (DHW Priority)",
+          "cooling": "Cooling",
+          "outdoor_limit": "Outdoor temperature limit",
+          "room_limit": "Room temperature limit",
+          "buffer_block": "Buffer too cold",
+          "dhw_priority": "DHW priority",
+          "preheat": "Preheat",
+          "normal": "Normal",
+          "comfort": "Comfort",
+          "reduced": "Reduced",
+          "station_dhw": "Station DHW",
+          "wood_block": "Wood boiler block",
+          "stove_block": "Pellet stove block",
+          "outdoor_block": "Outdoor temperature block",
+          "combi_dhw": "Combi boiler DHW",
+          "pump_block": "Circulation pump off",
+          "schedule_block": "Schedule block",
+          "manual": "Manual"
         }
       },
       "status_boiler": {
         "name": "PELEO 14 boiler status",
         "state": {
-          "off": "Off", "on": "On", "on_heating": "On for Heating Circuit", "loading_buffer": "Loading Buffer", "blocked": "Blocked", "cooling_hp": "Cooling Heat Pump", "ww_prep": "DHW Preparation"
+          "off": "Off",
+          "on": "On",
+          "on_heating": "On for Heating Circuit",
+          "loading_buffer": "Loading Buffer",
+          "blocked": "Blocked",
+          "cooling_hp": "Cooling Heat Pump",
+          "ww_prep": "DHW Preparation",
+          "outdoor_limit": "Outdoor temperature limit",
+          "room_limit": "Room temperature limit",
+          "buffer_block": "Buffer too cold",
+          "dhw_priority": "DHW priority",
+          "preheat": "Preheat",
+          "normal": "Normal",
+          "comfort": "Comfort",
+          "reduced": "Reduced",
+          "station_dhw": "Station DHW",
+          "wood_block": "Wood boiler block",
+          "stove_block": "Pellet stove block",
+          "outdoor_block": "Outdoor temperature block",
+          "combi_dhw": "Combi boiler DHW",
+          "pump_block": "Circulation pump off",
+          "schedule_block": "Schedule block",
+          "manual": "Manual",
+          "solar_excess": "Solar excess"
         }
+      },
+      "external_flow_hk1": {
+        "name": "External flow target HC1"
+      },
+      "target_buffer_top": {
+        "name": "Buffer top target temperature"
+      },
+      "target_boiler": {
+        "name": "Boiler target temperature"
+      }
+    }
+  },
+  "selector": {
+    "components": {
+      "options": {
+        "general": "General / outdoor temperature",
+        "boiler": "Boiler / pellet heating",
+        "buffer": "Buffer storage",
+        "hk1": "Heating circuit 1",
+        "hk2": "Heating circuit 2",
+        "dhw": "Domestic hot water",
+        "circulation": "Circulation",
+        "solar": "Solar thermal",
+        "pool": "Pool",
+        "room": "Room sensors"
+      }
+    },
+    "sensors": {
+      "options": {
+        "outdoor_temp": "Outdoor Temperature",
+        "flow_hk1": "Flow HK1",
+        "return_hk1": "Return HK1",
+        "dhw_temp": "DHW Temperature",
+        "buffer_top": "Buffer Top",
+        "buffer_bottom": "Buffer Bottom",
+        "circ_return_temp": "Circulation Return",
+        "room_temp_hk1": "Room Temp HK1",
+        "room_temp_hk2": "Room Temp HK2",
+        "boiler_flow": "Boiler Flow",
+        "boiler_return": "Boiler Return",
+        "boiler_hours": "PELEO 14 operating hours",
+        "boiler_starts": "PELEO 14 boiler starts",
+        "flow_hk2": "Flow HK2",
+        "return_hk2": "Return HK2",
+        "collector_temp": "Collector Temperature",
+        "solar_power": "Solar Power",
+        "solar_day": "Solar Yield Day",
+        "solar_total": "Solar Yield Total",
+        "pool_temp": "Pool Temperature",
+        "pool_flow": "Pool Flow",
+        "pool_return": "Pool Return",
+        "status_hk1": "Status HK1",
+        "status_hk2": "Status HK2",
+        "status_ww": "Status DHW",
+        "status_circ": "Status Circulation",
+        "status_solar": "Status Solar",
+        "status_pool": "Status Pool",
+        "status_boiler": "PELEO 14 boiler status",
+        "external_flow_hk1": "External flow target HC1",
+        "target_buffer_top": "Buffer top target temperature",
+        "target_boiler": "Boiler target temperature"
+      }
+    },
+    "models": {
+      "options": {
+        "systacomfort_ii": "SystaComfort II (≥ 2.16)",
+        "compact_c": "Compact C (≥ 2.16)",
+        "legacy_unverified": "Legacy profile – unverified model",
+        "systasmartc_ii": "SystaSmartC II – not supported yet"
+      }
+    },
+    "controls": {
+      "options": {
+        "flow_hk1": "External flow target HC1",
+        "flow_hk2": "External flow target HC2",
+        "dhw_target": "External DHW target (release required)"
       }
     }
   }

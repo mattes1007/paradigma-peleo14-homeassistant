@@ -1,3 +1,5 @@
+> Historischer Bericht. Die modulare Version ersetzt den globalen Optionsdialog und separate Plattform-Poller. Maßgeblich: [Konfiguration](KONFIGURATION.md), [Steuerfunktionen](STEUERFUNKTIONEN.md), [Migration](MIGRATION.md).
+
 # P3: Steuerfreigabe und Prüfung der Schreibpfade
 
 ## Auswirkungen auf die Plattformen

@@ -192,10 +192,10 @@ class ConfirmationReviewTests(unittest.TestCase):
     def test_cyclic_platform_read_counts_and_target_only_readback(self):
         self.hub._client.calls.clear()
         self.number.update()
-        self.assertEqual(self.hub._client.calls, [('holding', 2, 1, 1)])
+        self.assertEqual(self.hub._client.calls, [])
         self.hub._client.calls.clear()
         self.water.update()
-        self.assertEqual(self.hub._client.calls, [('input', 3, 1, 1), ('holding', 8, 1, 1)])
+        self.assertEqual(self.hub._client.calls, [])
         self.hub._client.calls.clear()
         self.water.set_temperature(temperature=60)
         self.assertEqual(self.hub._client.calls, [('coils', 4, 2, 1), ('holding', 8, 1, 1)])

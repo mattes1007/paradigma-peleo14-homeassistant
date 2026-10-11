@@ -13,6 +13,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class ParadigmaWaterHeater(WaterHeaterEntity):
+    _attr_should_poll = False
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self.async_on_remove(self._hub.coordinator.async_add_listener(self._coordinator_updated))
+        self._coordinator_updated()
+
+    def _coordinator_updated(self):
+        self.update()
+        self.async_write_ha_state()
+
     def __init__(self, hub, entry):
         self._hub = hub
         self._entry_id = entry.entry_id
@@ -33,11 +44,12 @@ class ParadigmaWaterHeater(WaterHeaterEntity):
 
     @property
     def device_info(self):
-        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)}, name="Paradigma Heizung", manufacturer="Paradigma", model="SystaSmartC II")
+        return DeviceInfo(identifiers={(DOMAIN, self._entry_id)})
 
     @property
     def available(self):
-        return self._attr_available and self._hub.can_write_register(8)
+        return (getattr(self._hub.coordinator, "last_update_success", False)
+                and self._attr_available and self._hub.can_write_register(8))
 
     @property
     def current_temperature(self):
@@ -52,11 +64,11 @@ class ParadigmaWaterHeater(WaterHeaterEntity):
         return self._confirmation.attributes
 
     def update(self):
-        self._current_temp = decode_temperature(self._hub.read_input_registers(3, 1))
-        self._update_target()
+        self._current_temp = decode_temperature([(self._hub.coordinator.data or {}).get("input_3")])
+        self._update_target(cached=True)
 
-    def _update_target(self):
-        self._target_temp = decode_temperature(self._hub.read_holding_registers(8, 1))
+    def _update_target(self, cached=False):
+        self._target_temp = decode_temperature([(self._hub.coordinator.data or {}).get("holding_8")] if cached else self._hub.read_holding_registers(8, 1))
         self._attr_available = self._target_temp is not None
         self._confirmation.observe(self._target_temp)
 

@@ -21,6 +21,7 @@ class ParadigmaHub:
         self._closed = False
         self._allow_control = allow_control is True
         self._permission_check = permission_check
+        self.address_permission = None  # Missing individual policy denies writes.
         self._denied_writes = set()
         self._retry_after = 0.0
         self._transport_failed = False
@@ -144,8 +145,14 @@ class ParadigmaHub:
         self._allow_control = False
 
     def can_write_register(self, address):
-        return (self.control_enabled and self._slave_id == 1
-                and type(address) is int and address in REGISTER_LIMITS)
+        if not (self.control_enabled and self._slave_id == 1
+                and type(address) is int and address in REGISTER_LIMITS):
+            return False
+        try:
+            return (callable(self.address_permission)
+                    and self.address_permission(address) is True)
+        except Exception:
+            return False
 
     def can_write_coil(self, address):
         return self.control_enabled and type(address) is int and address in CONTROL_COILS

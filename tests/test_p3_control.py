@@ -57,6 +57,13 @@ def make_hub(permission=False, **kwargs):
     hub = HUB.ParadigmaHub(None, 'PELEO', 'offline.example', 502, 1,
                           allow_control=permission, **kwargs)
     hub._client = WriteClient()
+    hub.address_permission = lambda address: address in (2, 3, 8)
+    class Cache:
+        last_update_success = True
+        @property
+        def data(self):
+            return {**{f'holding_{k}':v for k,v in hub._client.stored.items()}, 'input_3': 0}
+    hub.coordinator = Cache()
     return hub
 
 
@@ -93,6 +100,7 @@ def load_entities():
     modules['homeassistant.exceptions'].ServiceValidationError = ServiceValidationError
     modules['homeassistant.helpers.entity'].DeviceInfo = dict
     result = {}
+    modules['p3_entity_package.catalog'] = __import__('test_peleo_sensors').SENSOR.CATALOG
     with patch.dict(sys.modules, modules):
         for name in ('number', 'switch', 'water_heater'):
             spec = importlib.util.spec_from_file_location(f'p3_entity_package.{name}', ROOT / f'custom_components/paradigma/{name}.py')
@@ -370,91 +378,24 @@ class EntityControlTests(unittest.TestCase):
 
 
 class PermissionFlowTests(unittest.TestCase):
-    def data(self, **kwargs):
-        return dict(name='PELEO', host='offline.example', port=502, slave_id=1, **kwargs)
+    def test_grants_model_and_component_scoped(self):
+        allowed=FLOW['allowed_addresses']
+        for model in ('legacy_unverified','systasmartc_ii'):
+            self.assertEqual(allowed(dict(model=model, controls=['flow_hk1'],components=['hk1'])),set())
+        self.assertEqual(allowed(dict(model='systacomfort_ii',controls=['flow_hk1'],components=['hk1'])),{2})
+        self.assertEqual(allowed(dict(model='systacomfort_ii',controls=['flow_hk1'],components=[])),set())
 
-    def test_new_installation_defaults_to_false(self):
-        flow = FLOW['ConfigFlow']()
-        flow.hass = FakeHass()
-        form = asyncio.run(flow.async_step_user())
-        self.assertIs(next(key.default for key in form['data_schema'] if key == ALLOW), False)
-        result = asyncio.run(flow.async_step_user(self.data()))
-        self.assertIs(result['data'][ALLOW], False)
+    def test_legacy_explicit_grants_preserved_without_new_grants(self):
+        migrate=FLOW['migrate_data']
+        self.assertEqual(migrate({'allow_control':True})['controls'],['flow_hk1','dhw_target'])
+        self.assertEqual(migrate({})['controls'],[])
+        self.assertNotIn('external_flow_hk1',migrate({})['sensors'])
 
-    def test_invalid_permission_rejected_by_both_flows(self):
-        for permission in (None, 0, 1, 'true', 'false', [], {}):
-            user = FLOW['ConfigFlow']()
-            user.hass = FakeHass()
-            with patch.dict(FLOW, {'ParadigmaHub': lambda *a: self.fail('Unexpected connection')}):
-                result = asyncio.run(user.async_step_user(self.data(allow_control=permission)))
-            self.assertEqual(result['errors'][ALLOW], 'invalid_allow_control')
-            entry = SimpleNamespace(entry_id='existing-entry', options={}, data=self.data())
-            options = FLOW['OptionsFlowHandler'](entry)
-            options.config_entry = entry
-            options.hass = FakeHass()
-            result = asyncio.run(options.async_step_init({ALLOW: permission}))
-            self.assertEqual(result['errors'][ALLOW], 'invalid_allow_control')
-            self.assertNotIn(ALLOW, entry.data)
-
-    def test_legacy_and_stale_options_do_not_grant_permission(self):
-        entry = SimpleNamespace(entry_id='existing-entry', data=self.data(), options={ALLOW: True})
-        options = FLOW['OptionsFlowHandler'](entry)
-        options.config_entry = entry
-        options.hass = FakeHass()
-        form = asyncio.run(options.async_step_init())
-        self.assertIs(next(key.default for key in form['data_schema'] if key == ALLOW), False)
-        asyncio.run(options.async_step_init({'scan_interval': 40}))
-        self.assertIs(entry.data[ALLOW], False)
-
-    def test_endpoint_change_requires_a_second_explicit_grant(self):
-        for field, value in (("host", "other.example"), ("port", 503), ("slave_id", 2)):
-            entry = SimpleNamespace(entry_id='existing-entry', options={}, data=self.data(allow_control=True))
-            flow = FLOW['OptionsFlowHandler'](entry)
-            flow.config_entry = entry
-            flow.hass = FakeHass()
-            asyncio.run(flow.async_step_init({field: value, ALLOW: True}))
-            self.assertIs(entry.data[ALLOW], False)
-            asyncio.run(flow.async_step_init({ALLOW: True}))
-            self.assertIs(entry.data[ALLOW], True)
-
-    def test_identical_options_save_does_not_revoke_without_a_reload(self):
-        data = self.data(allow_control=True)
-        entry = SimpleNamespace(entry_id='existing-entry', data=data, options=dict(data))
-        hub = make_hub(True)
-        flow = FLOW['OptionsFlowHandler'](entry)
-        flow.config_entry = entry
-        flow.hass = FakeHass()
-        flow.hass.data = {'paradigma': {entry.entry_id: hub}}
-        asyncio.run(flow.async_step_init({ALLOW: True}))
-        self.assertTrue(hub.control_enabled)
-
-    def test_connection_test_never_receives_write_permission(self):
-        hubs = []
-        def factory(*args, **kwargs):
-            hub = HUB.ParadigmaHub(*args, **kwargs)
-            hubs.append(hub)
-            return hub
-        flow = FLOW['ConfigFlow']()
-        flow.hass = FakeHass()
-        with patch.dict(FLOW, {'ParadigmaHub': factory}):
-            result = asyncio.run(flow.async_step_user(self.data(allow_control=True)))
-        self.assertIs(result['data'][ALLOW], True)
-        self.assertFalse(hubs[0]._allow_control)
-        self.assertTrue(hubs[0]._closed)
-        self.assertEqual(hubs[0]._client.calls, [])
-
-    def test_explicit_grant_revokes_old_runtime_and_partial_save_locks(self):
-        entry = SimpleNamespace(entry_id='existing-entry', options={}, data=self.data(allow_control=False))
-        hub = make_hub(True)
-        options = FLOW['OptionsFlowHandler'](entry)
-        options.config_entry = entry
-        options.hass = FakeHass()
-        options.hass.data = {'paradigma': {entry.entry_id: hub}}
-        asyncio.run(options.async_step_init({ALLOW: True}))
-        self.assertIs(entry.data[ALLOW], True)
-        self.assertFalse(hub.control_enabled)
-        asyncio.run(options.async_step_init({'scan_interval': 60}))
-        self.assertIs(entry.data[ALLOW], False)
+    def test_confirmation_required(self):
+        flow=FLOW['ConfigFlow']()
+        flow._draft=dict(model='systacomfort_ii', components=['hk1'])
+        result=asyncio.run(flow.async_step_controls({'controls':['flow_hk1']}))
+        self.assertEqual(result['errors']['base'],'confirm_control')
 
 
 class PermissionLifecycleTests(unittest.IsolatedAsyncioTestCase):

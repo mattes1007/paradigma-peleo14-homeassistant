@@ -3,14 +3,14 @@
 Addresses are zero-based. 44/45 are read-only; coil command sequencing is
 not yet approved. No policy is inferred from the user's global permission.
 """
+from .catalog import CONTROLS
 from decimal import Decimal, InvalidOperation
 from types import MappingProxyType
 from time import monotonic
 
 # Raw deci-degrees. Existing UI limits are conservative application limits,
 # not manufacturer guarantees. No off/release sentinel is accepted here.
-REGISTER_LIMITS = MappingProxyType({2: (200, 800, 10), 3: (200, 800, 10),
-                                    8: (300, 700, 1)})
+REGISTER_LIMITS = MappingProxyType({v[1]: v[2:] for v in CONTROLS.values()})
 CONTROL_REGISTERS = frozenset(REGISTER_LIMITS)
 CONTROL_COILS = frozenset()  # Pair/override semantics still require approval.
 
